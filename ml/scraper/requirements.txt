@@ -1,0 +1,6 @@
+"""Scrapy requirements for Fragrantica scraper."""
+
+scrapy==2.11.0
+boto3==1.26.165
+botocore==1.29.165
+item-adapter==0.7.0

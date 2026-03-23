@@ -1,0 +1,1 @@
+"""Scrapy spider module initialization."""
