@@ -20,7 +20,7 @@ export function FragranceFamilies() {
       observer.observe(sectionRef.current);
       const cards = sectionRef.current.querySelectorAll('.family-card');
       cards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
+        (card as HTMLElement).style.animationDelay = `${index * 0.1}s`;
         observer.observe(card);
       });
     }

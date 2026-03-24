@@ -55,14 +55,11 @@ export default function QuizPage() {
       setCurrentQuizStep(currentQuizStep + 1);
     } else {
       // Complete quiz
-      completeQuiz.mutate(
-        { quiz_id: quizId },
-        {
-          onSuccess: () => {
-            router.push('/recommendations');
-          },
-        }
-      );
+      completeQuiz.mutate(quizId, {
+        onSuccess: () => {
+          router.push('/recommendations');
+        },
+      });
     }
   };
 
@@ -72,14 +69,11 @@ export default function QuizPage() {
       setRating(null);
       setCurrentQuizStep(currentQuizStep + 1);
     } else {
-      completeQuiz.mutate(
-        { quiz_id: quizId! },
-        {
-          onSuccess: () => {
-            router.push('/recommendations');
-          },
-        }
-      );
+      completeQuiz.mutate(quizId!, {
+        onSuccess: () => {
+          router.push('/recommendations');
+        },
+      });
     }
   };
 
