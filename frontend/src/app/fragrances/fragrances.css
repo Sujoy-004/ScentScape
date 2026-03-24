@@ -1,0 +1,375 @@
+/* Fragrances Listing Page Styles */
+
+.fragrances-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #F9F6F1 0%, rgba(232, 240, 235, 0.2) 100%);
+  padding: var(--spacing-8) var(--spacing-4);
+}
+
+.fragrances-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.fragrances-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-12);
+  gap: var(--spacing-6);
+  animation: fadeIn 0.8s ease-out;
+}
+
+.fragrances-header h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0 0 var(--spacing-2) 0;
+  line-height: 1.2;
+}
+
+.fragrances-header p {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.back-to-home {
+  background: white;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: var(--spacing-3) var(--spacing-6);
+  border-radius: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.back-to-home:hover {
+  background: rgba(45, 90, 61, 0.05);
+  transform: translateY(-2px);
+}
+
+.controls-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--spacing-6);
+  align-items: end;
+  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);
+  animation: slideInUp 0.6s ease-out;
+}
+
+.filter-group,
+.sort-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.filter-group label,
+.sort-group label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-select,
+.sort-select {
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-dark);
+  background: white;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.filter-select:hover,
+.sort-select:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(45, 90, 61, 0.1);
+}
+
+.filter-select:focus,
+.sort-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(45, 90, 61, 0.1);
+}
+
+.result-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  padding-bottom: var(--spacing-3);
+}
+
+.fragrances-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
+}
+
+.fragrance-list-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.1);
+  transition: all var(--transition-base);
+  animation: slideInUp 0.6s ease-out forwards;
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.fragrance-list-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(45, 90, 61, 0.2);
+}
+
+.card-emoji {
+  font-size: 2.5rem;
+  text-align: center;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0 0 var(--spacing-1) 0;
+}
+
+.card-brand {
+  font-size: var(--font-size-sm);
+  color: var(--color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.card-notes {
+  margin-bottom: var(--spacing-4);
+}
+
+.notes-label {
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-2) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notes-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.note-pill {
+  display: inline-block;
+  background: rgba(232, 240, 235, 0.1);
+  color: var(--color-primary);
+  padding: 3px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-medium);
+}
+
+.card-metrics {
+  display: flex;
+  gap: var(--spacing-6);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-3);
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.stars {
+  font-size: 1rem;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.card-button {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  border: none;
+  padding: var(--spacing-3) var(--spacing-6);
+  border-radius: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.3);
+}
+
+.card-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 90, 61, 0.4);
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--spacing-12);
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.08);
+}
+
+.empty-state p {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-6) 0;
+}
+
+.fragrances-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F9F6F1;
+}
+
+.loading-spinner {
+  text-align: center;
+}
+
+.loading-spinner p {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-4);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(45, 90, 61, 0.2);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fragrances-error {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #F9F6F1;
+  padding: var(--spacing-4);
+  text-align: center;
+}
+
+.fragrances-error h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-4);
+}
+
+.fragrances-error p {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-6);
+}
+
+.error-button {
+  padding: var(--spacing-3) var(--spacing-6);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 90, 61, 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fragrances-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .controls-section {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-4);
+  }
+
+  .fragrances-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-4);
+  }
+}
