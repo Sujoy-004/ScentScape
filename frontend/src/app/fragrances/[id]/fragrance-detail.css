@@ -1,0 +1,581 @@
+/* Fragrance Detail Page Styles */
+
+.fragrance-detail-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #F9F6F1 0%, rgba(232, 240, 235, 0.2) 100%);
+  padding: var(--spacing-6) var(--spacing-4);
+}
+
+.detail-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.back-button {
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-base);
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: var(--spacing-2);
+  margin-bottom: var(--spacing-6);
+  font-weight: var(--font-weight-semibold);
+  transition: all var(--transition-base);
+}
+
+.back-button:hover {
+  transform: translateX(-4px);
+}
+
+.detail-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-8);
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-8);
+  box-shadow: 0 8px 24px rgba(45, 90, 61, 0.1);
+  margin-bottom: var(--spacing-8);
+  animation: slideInUp 0.6s ease-out;
+}
+
+.fragrance-image-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-6);
+}
+
+.fragrance-image-large {
+  font-size: 6rem;
+  line-height: 1;
+}
+
+.wishlist-btn-large {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  border: none;
+  padding: var(--spacing-4) var(--spacing-6);
+  border-radius: 8px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.3);
+}
+
+.wishlist-btn-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 90, 61, 0.4);
+}
+
+.fragrance-info-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.fragrance-header-info {
+  margin-bottom: var(--spacing-6);
+}
+
+.fragrance-detail-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.fragrance-detail-brand {
+  font-size: var(--font-size-lg);
+  color: var(--color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: var(--font-weight-semibold);
+  margin: var(--spacing-2) 0 0 0;
+}
+
+.fragrance-year {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: var(--spacing-1) 0 0 0;
+}
+
+.fragrance-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.metric-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.metric-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.metric-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.stars {
+  margin-right: var(--spacing-2);
+}
+
+.rating-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.fragrance-description {
+  font-size: var(--font-size-base);
+  color: var(--color-text-dark);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-6);
+}
+
+.action-buttons-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
+
+.btn-primary-detail,
+.btn-secondary-detail {
+  padding: var(--spacing-3) var(--spacing-6);
+  border: none;
+  border-radius: 6px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary-detail {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.3);
+}
+
+.btn-primary-detail:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 90, 61, 0.4);
+}
+
+.btn-secondary-detail {
+  background: white;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-secondary-detail:hover {
+  background: rgba(45, 90, 61, 0.05);
+}
+
+/* Note Pyramid Section */
+.note-pyramid-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-8);
+  box-shadow: 0 8px 24px rgba(45, 90, 61, 0.1);
+  margin-bottom: var(--spacing-8);
+  animation: slideInUp 0.6s ease-out 0.2s both;
+}
+
+.section-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0 0 var(--spacing-6) 0;
+}
+
+.pyramid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-6);
+}
+
+.pyramid-level {
+  padding: var(--spacing-6);
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid var(--color-border);
+  transition: all var(--transition-base);
+}
+
+.pyramid-level:hover {
+  border-color: var(--color-secondary);
+  box-shadow: 0 4px 12px rgba(201, 154, 110, 0.2);
+}
+
+.top-level {
+  background: rgba(201, 154, 110, 0.05);
+  order: 3;
+}
+
+.middle-level {
+  background: rgba(45, 90, 61, 0.05);
+  order: 2;
+}
+
+.base-level {
+  background: rgba(62, 53, 49, 0.05);
+  order: 1;
+}
+
+.level-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-4);
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.note-item {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.note-item.top {
+  background: white;
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
+}
+
+.note-item.middle {
+  background: white;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.note-item.base {
+  background: white;
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-text-muted);
+}
+
+/* Details Section */
+.details-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
+}
+
+.detail-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.1);
+  transition: all var(--transition-base);
+  animation: slideInUp 0.6s ease-out 0.3s both;
+}
+
+.detail-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(45, 90, 61, 0.15);
+}
+
+.detail-card h3 {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  margin: 0 0 var(--spacing-4) 0;
+  font-weight: var(--font-weight-bold);
+}
+
+.detail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.detail-list li {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-list .label {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.detail-list .value {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.card-content {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-dark);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.occasion-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.tag {
+  display: inline-block;
+  background: rgba(45, 90, 61, 0.1);
+  color: var(--color-primary);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: 16px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Reviews Section */
+.reviews-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-8);
+  box-shadow: 0 8px 24px rgba(45, 90, 61, 0.1);
+  margin-bottom: var(--spacing-8);
+  animation: slideInUp 0.6s ease-out 0.4s both;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-6);
+}
+
+.review-card {
+  padding: var(--spacing-6);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  transition: all var(--transition-base);
+}
+
+.review-card:hover {
+  border-color: var(--color-secondary);
+  background: rgba(201, 154, 110, 0.02);
+}
+
+.review-header {
+  display: flex;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  align-items: center;
+}
+
+.reviewer-avatar {
+  font-size: 2rem;
+}
+
+.reviewer-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.reviewer-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-dark);
+  margin: 0;
+}
+
+.review-rating {
+  font-size: 0.875rem;
+}
+
+.review-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-dark);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.review-date {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Footer */
+.detail-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-6);
+  margin: var(--spacing-12) 0;
+}
+
+.footer-btn-primary,
+.footer-btn-secondary {
+  padding: var(--spacing-4) var(--spacing-8);
+  border: none;
+  border-radius: 8px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer-btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  box-shadow: 0 6px 20px rgba(45, 90, 61, 0.3);
+}
+
+.footer-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(45, 90, 61, 0.4);
+}
+
+.footer-btn-secondary {
+  background: white;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.footer-btn-secondary:hover {
+  background: rgba(45, 90, 61, 0.05);
+}
+
+.detail-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F9F6F1;
+}
+
+.loading-spinner {
+  text-align: center;
+}
+
+.loading-spinner p {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-4);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(45, 90, 61, 0.2);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.detail-error {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #F9F6F1;
+  padding: var(--spacing-4);
+  text-align: center;
+}
+
+.detail-error h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-4);
+}
+
+.detail-error p {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-6);
+}
+
+.error-button {
+  padding: var(--spacing-3) var(--spacing-6);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.error-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 90, 61, 0.4);
+}
+
+/* Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .detail-header {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-6);
+  }
+
+  .fragrance-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .pyramid-container {
+    grid-template-columns: 1fr;
+  }
+
+  .details-section {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .action-buttons-detail {
+    grid-template-columns: 1fr;
+  }
+}
