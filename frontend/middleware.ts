@@ -5,36 +5,47 @@ const publicRoutes = [
   '/',
   '/auth/login',
   '/auth/register',
+  '/auth/forgot-password',
   '/fragrances',
   '/families',
+  '/terms',
+  '/privacy',
 ];
 
 // Define routes that require authentication
 const protectedRoutes = [
   '/profile',
-  '/wishlist',
-  '/recommendations',
   '/onboarding/quiz',
-  '/history',
+  '/recommendations',
+  '/user',
 ];
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  
+  // Check if the request is for a static asset, API route, or static file
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/public') ||
+    pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2)$/)
+  ) {
+    return NextResponse.next();
+  }
+
+  // Try to get auth token from cookie (set by login API)
   const authToken = request.cookies.get('auth_token')?.value;
+  const isPublicRoute = publicRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'));
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
-  // Check if route is protected
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  // If it's a protected route and no auth token, redirect to login
+  // If trying to access a protected route without auth, redirect to login
   if (isProtectedRoute && !authToken) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // If trying to access login/register while authenticated, redirect to recommendations
+  // If authenticated and trying to access auth pages, redirect to recommendations
   if ((pathname === '/auth/login' || pathname === '/auth/register') && authToken) {
     return NextResponse.redirect(new URL('/recommendations', request.url));
   }
