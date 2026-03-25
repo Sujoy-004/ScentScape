@@ -18,23 +18,25 @@ export function HeroSection() {
       {/* Hero Content */}
       <div className="hero-container">
         <div className="hero-content">
-          <h1 className="hero-title">
+          <h1 className="hero-title" string="split" string-repeat="true" string-split="char">
             Discover Your Perfect Scent
           </h1>
-          <p className="hero-subtitle">
+          <p className="hero-subtitle" string="split" string-repeat="true" string-split="word">
             Personalized fragrance recommendations powered by AI. Find the signature scent that speaks to your essence.
           </p>
 
           <div className="hero-buttons">
             <button 
-              className="btn btn-primary"
+              className="btn btn-primary magnetic-element"
               onClick={() => router.push('/onboarding/quiz')}
+              string="magnetic" string-radius="800" string-strength="0.1"
             >
               Start Discovery
             </button>
             <button 
-              className="btn btn-outline"
+              className="btn btn-outline magnetic-element"
               onClick={() => router.push('/fragrances')}
+              string="magnetic" string-radius="800" string-strength="0.1"
             >
               Learn More
             </button>

@@ -90,9 +90,9 @@ export default function RecommendationsPage() {
           </div>
         </div>
 
-        <div className="recommendations-grid" ref={sectionRef}>
+        <div className="recommendations-grid" ref={sectionRef} string="parallax" string-speed="0.5">
           {topMatches.map((fragrance: any, index: number) => (
-            <div key={index} className="recommendation-card">
+            <div key={index} className="recommendation-card" string="impulse">
               <div className="card-header">
                 <span className="rank">#{index + 1}</span>
                 <button
@@ -190,3 +190,4 @@ export default function RecommendationsPage() {
     </div>
   );
 }
+

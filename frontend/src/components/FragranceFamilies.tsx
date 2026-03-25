@@ -43,19 +43,20 @@ export function FragranceFamilies() {
     <section className="fragrance-families" ref={sectionRef}>
       <div className="fragrance-families-container">
         <div className="section-header">
-          <h2 className="section-title">Explore Fragrance Families</h2>
-          <p className="section-subtitle">Find your scent profile across these carefully curated families</p>
+          <h2 className="section-title" string="split" string-repeat="true" string-split="word">Explore Fragrance Families</h2>
+          <p className="section-subtitle" string="split" string-repeat="true" string-split="word">Find your scent profile across these carefully curated families</p>
         </div>
 
         <div className="families-grid">
           {families.map((family, index) => (
-            <div key={index} className="family-card">
-              <div className="family-emoji">{family.emoji}</div>
+              <div key={index} className="family-card tilt-card" string="magnetic|glide" string-radius="800" string-strength="0.1" string-glide="0.3">
+              <div className="family-emoji super-magnetic-element" string="magnetic" string-radius="150" string-strength="0.5" style={{display: 'inline-block'}}>{family.emoji}</div>
               <h3 className="family-name">{family.name}</h3>
               <p className="family-description">{family.description}</p>
               <div className="family-notes">{family.notes}</div>
               <button 
-                className="family-btn"
+                className="family-btn magnetic-element"
+                string="magnetic" string-radius="400" string-strength="0.2"
                 onClick={() => router.push(`/families/${family.slug}`)}
               >
                 Explore Family

@@ -41,27 +41,27 @@ export default function FamiliesPage() {
 
         {/* Families Grid */}
         <div className="families-grid">
-          {families.map((family: string) => (
+          {families.map((family: { id: string; name: string; description: string }) => (
             <div
-              key={family}
+              key={family.id}
               className="family-card"
-              onClick={() => router.push(`/families/${family}`)}
+              onClick={() => router.push(`/families/${family.id}`)}
             >
               <div className="family-emoji">
-                {familyEmojis[family.toLowerCase()] || '🧴'}
+                {familyEmojis[family.id.toLowerCase()] || '🧴'}
               </div>
 
               <div className="family-content">
                 <h2 className="family-name">
-                  {family.charAt(0).toUpperCase() + family.slice(1)}
+                  {family.name}
                 </h2>
 
                 <p className="family-description">
-                  {familyDescriptions[family.toLowerCase()] || `Discover ${family} fragrances`}
+                  {family.description}
                 </p>
 
                 <button className="family-explore-btn">
-                  Explore → 
+                  Explore →
                 </button>
               </div>
             </div>

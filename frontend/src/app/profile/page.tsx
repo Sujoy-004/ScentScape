@@ -52,7 +52,7 @@ export default function ProfilePage() {
     <div className="profile-page">
       <div className="profile-container">
         {/* Header */}
-        <div className="profile-header">
+        <div className="profile-header" string="parallax" string-speed="0.2">
           <div>
             <h1>Your Profile</h1>
             <p>Manage your account and preferences</p>
@@ -131,19 +131,19 @@ export default function ProfilePage() {
           <div className="profile-section stats-section">
             <h2 className="section-title">Your Stats</h2>
             <div className="stats-grid">
-              <div className="stat-card">
+              <div className="stat-card" string="impulse|magnetic" string-strength="0.1">
                 <span className="stat-number">
                   {profile?.quiz_count || 0}
                 </span>
                 <span className="stat-label">Quizzes Taken</span>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" string="impulse|magnetic" string-strength="0.1">
                 <span className="stat-number">
                   {profile?.wishlist_count || 0}
                 </span>
                 <span className="stat-label">Saved Fragrances</span>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" string="impulse|magnetic" string-strength="0.1">
                 <span className="stat-number">
                   {profile?.recommendation_count || 0}
                 </span>
@@ -193,3 +193,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

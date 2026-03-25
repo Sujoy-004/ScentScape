@@ -53,15 +53,13 @@ export function ProductGrid() {
     <section className="product-grid" ref={sectionRef}>
       <div className="product-grid-container">
         <div className="section-header">
-          <h2 className="section-title">Discover Premium Fragrances</h2>
-          <p className="section-subtitle">Handpicked fragrances from the world's finest brands</p>
+          <h2 className="section-title" string="split" string-repeat="true" string-split="word">Discover Premium Fragrances</h2>
+          <p className="section-subtitle" string="split" string-repeat="true" string-split="word">Handpicked fragrances from the world's finest brands</p>
         </div>
 
         <div className="fragrances-grid">
           {fragrances.map((fragrance, index) => (
-            <div key={index} className="fragrance-card">
-              <div className="fragrance-image">🧴</div>
-              
+              <div key={index} className="fragrance-card tilt-card" string="magnetic|glide" string-radius="800" string-strength="0.1" string-glide="0.3">
               <div className="fragrance-content">
                 <div className="fragrance-brand">{fragrance.brand}</div>
                 <h3 className="fragrance-name">{fragrance.name}</h3>

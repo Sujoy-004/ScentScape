@@ -94,7 +94,7 @@ const FlashcardQuiz: React.FC = () => {
               </h2>
               <p className="text-gray-600 mb-4">{currentFragrance.concentration}</p>
               <div className="flex gap-2 flex-wrap justify-center mb-6">
-                {currentFragrance.accords?.map((accord) => (
+                {currentFragrance.accords?.map((accord: string) => (
                   <span
                     key={accord}
                     className="px-3 py-1 bg-[#4a7c59] text-white rounded-full text-sm"
@@ -174,3 +174,4 @@ const FlashcardQuiz: React.FC = () => {
 };
 
 export default FlashcardQuiz;
+

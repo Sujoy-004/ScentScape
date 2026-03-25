@@ -38,7 +38,8 @@
   background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
   margin-bottom: var(--spacing-8);
   border-radius: 2px;
-  transition: width 0.3s ease;
+  width: calc(var(--progress, 0) * 100%);
+  transition: width 0.5s cubic-bezier(0.86, 0, 0.31, 1);
 }
 
 .quiz-card {
@@ -288,3 +289,4 @@
     width: 100%;
   }
 }
+

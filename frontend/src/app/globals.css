@@ -49,6 +49,48 @@
   --shadow-elevation-2: 0 8px 16px rgba(45, 90, 61, 0.15);
 }
 
+@property --progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --spotlight-angle {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --spotlight-distance {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --magnetic-x {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --magnetic-y {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --push-x {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --push-y {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -64,6 +106,49 @@ body {
   transition: background-color 0.3s ease;
 }
 
+/* StringTune Animation Classes */
+.-s-char, .-s-word {
+  display: inline-flex;
+  will-change: transform, opacity;
+  transform: translate3d(0, 120%, 0);
+  opacity: 0;
+}
+
+.-splitted.-inview .-s-char,
+.-splitted.-inview .-s-word {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  transition: transform 0.9s cubic-bezier(0.86, 0, 0.31, 1), opacity 0.6s ease;
+  transition-delay: calc((var(--char-start, var(--word-start, 0)) / 10) * 0.3s);
+}
+
+/* StringTune Magnetic & Tilt */
+.magnetic-element {
+  transform: translate(calc(var(--magnetic-x, 0) * 1%), calc(var(--magnetic-y, 0) * 1%));
+  transition: transform 0.1s cubic-bezier(0.86, 0, 0.31, 1);
+  will-change: transform;
+}
+
+.super-magnetic-element {
+  transform: translate(calc(var(--magnetic-x, 0) * 1.5px), calc(var(--magnetic-y, 0) * 1.5px));
+  transition: transform 0.1s cubic-bezier(0.86, 0, 0.31, 1);
+  will-change: transform;
+}
+
+.fragrance-card, .family-card {
+  transform: 
+    translate(calc(var(--magnetic-x, 0) * 0.2%), calc(var(--magnetic-y, 0) * 0.2%))
+    rotateX(calc(var(--magnetic-y, 0) * -0.5deg))
+    rotateY(calc(var(--magnetic-x, 0) * 0.5deg));
+  transition: transform 0.6s cubic-bezier(0.86, 0, 0.31, 1), scale 0.6s cubic-bezier(0.86, 0, 0.31, 1);
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+.fragrance-card:hover, .family-card:hover {
+  scale: 1.02;
+}
+
 /* Spray particle styling for ClickSprayEffect */
 .spray-particle {
   position: fixed;
@@ -74,4 +159,28 @@ body {
   pointer-events: none;
   box-shadow: 0 0 8px rgba(201, 154, 110, 0.5);
   z-index: 9999;
+}
+/* StringTune Split Text Mechanics */
+.-splitted .s-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(20px) rotateX(-20deg);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.2, 1, 0.2, 1);
+}
+
+.-splitted.-inview .s-char {
+  opacity: 1;
+  transform: translateY(0) rotateX(0);
+}
+.-s-char {
+    display: inline-block;
+    will-change: transform;
+    transform: translate3d(0, 120%, 0);
+    opacity: 0;
+}
+.-splitted.-inview .-s-char {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    transition: transform 0.9s cubic-bezier(0.86, 0, 0.31, 1), opacity 0.4s ease;
+    transition-delay: calc((var(--char-start, 0) / 10) * 0.5s);
 }

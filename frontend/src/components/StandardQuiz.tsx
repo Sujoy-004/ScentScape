@@ -59,21 +59,21 @@ export default function StandardQuiz() {
   return (
     <div className="quiz-page">
       <div className="quiz-container">
-        <div className="quiz-header">
+        <div className="quiz-header" string="reveal">
           <h1>Discover Your Signature Scent</h1>
           <p>Rate your favorite fragrances to get personalized recommendations</p>
         </div>
 
-        <div className="quiz-progress-bar" style={{ width: `${progress}%` }}></div>
+        <div className="quiz-progress-bar" style={{ "--progress": progress / 100 } as any} string="progress" string-progress-value={progress / 100}></div>
 
-        <div className="quiz-card">
+        <div className="quiz-card" string="reveal">
           <div className="fragrance-preview">
             <div className="fragrance-emoji">🧴</div>
             <h2 className="fragrance-title">{currentFragrance.name}</h2>
             <p className="fragrance-brand">{currentFragrance.brand}</p>
           </div>
 
-          <div className="rating-section">
+          <div className="rating-section" string="reveal" style={{ animationDelay: `0.2s` }}>
             <p className="rating-label">How much do you like this fragrance?</p>
             <div className="rating-slider">
               <input
@@ -93,7 +93,7 @@ export default function StandardQuiz() {
             </div>
           </div>
 
-          <div className="quiz-notes-preview">
+          <div className="quiz-notes-preview" string="reveal" style={{ animationDelay: `0.4s` }}>
             <p className="notes-title">Top Notes:</p>
             <div className="notes-pills">
               {currentFragrance.top_notes?.map((note: string) => (
@@ -128,3 +128,6 @@ export default function StandardQuiz() {
     </div>
   );
 }
+
+
+

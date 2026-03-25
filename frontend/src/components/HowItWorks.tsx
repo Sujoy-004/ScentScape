@@ -32,30 +32,30 @@ export function HowItWorks() {
         </div>
 
         <div className="steps-grid">
-          <div className="step-card step-1">
+          <div className="step-card step-1" style={{ animationDelay: "0.2s" }} string="reveal">
             <div className="step-number">1</div>
             <div className="step-emoji">⭐</div>
-            <h3 className="step-heading">Rate Your Favorites</h3>
+            <h3 className="step-heading" string="split" string-split="char">Rate Your Favorites</h3>
             <p className="step-description">
               Answer quick questions about your favorite fragrances. Rate them on sweetness, woodiness, longevity, and intensity.
             </p>
             <div className="step-visual">🎯</div>
           </div>
 
-          <div className="step-card step-2">
+          <div className="step-card step-2" style={{ animationDelay: "0.4s" }} string="reveal">
             <div className="step-number">2</div>
             <div className="step-emoji">🧠</div>
-            <h3 className="step-heading">Get AI-Matched</h3>
+            <h3 className="step-heading" string="split" string-split="char">Get AI-Matched</h3>
             <p className="step-description">
               Our GraphSAGE AI analyzes your taste profile and compares it with 1000+ fragrances from our carefully curated database.
             </p>
             <div className="step-visual">🔄</div>
           </div>
 
-          <div className="step-card step-3">
+          <div className="step-card step-3" style={{ animationDelay: "0.6s" }} string="reveal">
             <div className="step-number">3</div>
             <div className="step-emoji">✨</div>
-            <h3 className="step-heading">Explore & Discover</h3>
+            <h3 className="step-heading" string="split" string-split="char">Explore & Discover</h3>
             <p className="step-description">
               Browse personalized matches, view detailed notes, read community reviews, and save your favorites to your collection.
             </p>
@@ -66,3 +66,6 @@ export function HowItWorks() {
     </section>
   );
 }
+
+
+
