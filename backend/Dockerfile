@@ -12,10 +12,10 @@ RUN useradd -m -u 1000 appuser
 
 # Copy and install Python dependencies
 COPY pyproject.toml .
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir ".[dev]"
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir -e .
 
-# Copy application code
+# Copy application code  
 COPY app app
 COPY tests tests
 
