@@ -41,7 +41,7 @@ export function ClickSprayEffect() {
         particles.push(particle);
 
         // Animate the particle
-        let startTime = Date.now();
+        const startTime = Date.now();
         const duration = 800; // Duration in ms
 
         const animate = () => {

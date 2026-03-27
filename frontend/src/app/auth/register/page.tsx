@@ -68,7 +68,12 @@ export default function RegisterPage() {
           router.push('/onboarding/quiz');
         },
         onError: (err: any) => {
-          setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+          let errMsg = 'Registration failed. Please try again.';
+          const detail = err.response?.data?.detail;
+          if (detail) {
+            errMsg = Array.isArray(detail) ? detail[0].msg : (detail.msg || (typeof detail === 'string' ? detail : JSON.stringify(detail)));
+          }
+          setError(errMsg);
           setIsLoading(false);
         },
       }

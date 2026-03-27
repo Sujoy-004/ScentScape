@@ -7,24 +7,37 @@ Provides endpoints for:
 - User-profile-based recommendations (async)
 """
 
-import asyncio
+from datetime import datetime, timezone
 import logging
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, status, Depends, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, Query, status, Depends
+import sys
+import os
+from celery.result import AsyncResult
 
 from app.auth.dependencies import get_optional_user_id
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
+from app.celery_app import celery_app
+from app.tasks.recommend_tasks import recommend_by_profile_task, recommend_by_text_task
 from app.schemas.schemas import (
     FragranceDetail,
     FragranceSearchResult,
     TextRecommendationRequest,
     RecommendationJob,
     RecommendationResult,
+    FragranceNote,
+    FragranceAccord,
 )
 
+# Attempt to import neo4j local client
+try:
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+    from ml.graph.neo4j_client import get_neo4j, init_neo4j
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/fragrances", tags=["fragrances"])
@@ -32,89 +45,131 @@ router = APIRouter(prefix="/fragrances", tags=["fragrances"])
 # In-memory job cache (in production: use Redis)
 recommendation_jobs = {}
 
+def get_graph_client():
+    """Lazy initialize neo4j client"""
+    try:
+        from ml.graph.neo4j_client import get_neo4j, init_neo4j
+        try:
+            return get_neo4j()
+        except RuntimeError:
+            uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+            user = os.environ.get("NEO4J_USERNAME", "neo4j")
+            pwd = os.environ.get("NEO4J_PASSWORD", "password")
+            return init_neo4j(uri, user, pwd)
+    except Exception as e:
+        logger.error(f"Neo4j client init failed: {e}")
+        return None
+
+
+@router.get("", response_model=List[FragranceSearchResult])
+async def list_fragrances(
+    limit: int = Query(10, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    brand: Optional[str] = Query(None),
+    user_id: Optional[int] = Depends(get_optional_user_id),
+) -> List[FragranceSearchResult]:
+    """List fragrances with lightweight pagination and optional brand filter."""
+    client = get_graph_client()
+    if not client:
+        return []
+
+    where_clause = ""
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
+    if brand:
+        where_clause = "WHERE toLower(f.brand) CONTAINS toLower($brand)"
+        params["brand"] = brand
+
+    query = f"""
+    MATCH (f:Fragrance)
+    {where_clause}
+    OPTIONAL MATCH (f)-[:BELONGS_TO_ACCORD]->(a:Accord)
+    RETURN f, collect(distinct a.name) as accords
+    SKIP $offset
+    LIMIT $limit
+    """
+
+    try:
+        results = client.execute_query(query, params)
+        return [
+            FragranceSearchResult(
+                id=r["f"].get("id"),
+                name=r["f"].get("name"),
+                brand=r["f"].get("brand", "Unknown"),
+                year=r["f"].get("year"),
+                top_accords=list(r["accords"])[:3],
+                similarity_score=None,
+            )
+            for r in results
+        ]
+    except Exception as e:
+        logger.error(f"List fragrances query failed: {e}")
+        return []
 
 @router.get("/{fragrance_id}", response_model=FragranceDetail)
 async def get_fragrance_detail(
     fragrance_id: str,
     user_id: Optional[int] = Depends(get_optional_user_id),
 ) -> FragranceDetail:
-    """Get fragrance detail including notes, accords, and similarity to user profile.
-    
-    Args:
-        fragrance_id: Neo4j fragrance ID
-        user_id: Optional authenticated user (for personalized similarity score)
-        
-    Returns:
-        Fragrance detail with notes, accords, optional similarity score
-        
-    Raises:
-        HTTPException: 404 if fragrance not found
-    """
-    logger.info(f"GET /fragrances/{fragrance_id} (user: {user_id})")
-    
-    # Mock fragrance data (TODO: Replace with Neo4j query)
-    mock_fragrances = {
-        "frag_001": FragranceDetail(
-            id="frag_001",
-            name="Sauvage",
-            brand="Dior",
-            year=2015,
-            concentration="Eau de Toilette",
-            gender_label="Men",
-            description="A fresh and spicy fragrance with prominent ambroxan base.",
-            top_notes=[
-                FragranceNote(id="note_1", name="Ambroxan", category="top", intensity=0.8),
-                FragranceNote(id="note_2", name="Pepper", category="top", intensity=0.6),
-            ],
-            middle_notes=[
-                FragranceNote(id="note_3", name="Ambroxan", category="middle", intensity=0.9),
-            ],
-            base_notes=[
-                FragranceNote(id="note_4", name="Cedar", category="base", intensity=0.7),
-                FragranceNote(id="note_5", name="Ambroxan", category="base", intensity=0.95),
-            ],
-            accords=[
-                FragranceAccord(id="acc_1", name="Aromatic", certainty=0.9),
-                FragranceAccord(id="acc_2", name="Spicy", certainty=0.8),
-            ],
-            similarity_score=0.85 if user_id else None,
-        ),
-        "frag_002": FragranceDetail(
-            id="frag_002",
-            name="Bleu de Chanel",
-            brand="Chanel",
-            year=2010,
-            concentration="Eau de Parfum",
-            gender_label="Men",
-            description="A citrus fruity fragrance with ginger and sandalwood.",
-            top_notes=[
-                FragranceNote(id="note_6", name="Ginger", category="top", intensity=0.8),
-                FragranceNote(id="note_7", name="Lemon", category="top", intensity=0.7),
-            ],
-            middle_notes=[
-                FragranceNote(id="note_8", name="Sandalwood", category="middle", intensity=0.8),
-            ],
-            base_notes=[
-                FragranceNote(id="note_9", name="Sandalwood", category="base", intensity=0.9),
-                FragranceNote(id="note_10", name="Incense", category="base", intensity=0.6),
-            ],
-            accords=[
-                FragranceAccord(id="acc_3", name="Citrus", certainty=0.85),
-                FragranceAccord(id="acc_4", name="Woody", certainty=0.8),
-            ],
-            similarity_score=0.78 if user_id else None,
-        ),
-    }
-    
-    fragrance = mock_fragrances.get(fragrance_id)
-    if not fragrance:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Fragrance '{fragrance_id}' not found",
+    """Get fragrance detail including notes, accords, and similarity to user profile."""
+    client = get_graph_client()
+    if not client:
+        logger.warning("Graph client unavailable. Returning mock data.")
+        return FragranceDetail(
+            id=fragrance_id,
+            name="Mocked Fragrance",
+            brand="Unknown",
+            year=2024,
+            concentration="EDP",
+            description="Database unavailable."
         )
-    
-    return fragrance
 
+    query = """
+    MATCH (f:Fragrance {id: $frag_id})
+    OPTIONAL MATCH (f)-[r:HAS_NOTE]->(n:Note)
+    OPTIONAL MATCH (f)-[a:BELONGS_TO_ACCORD]->(ac:Accord)
+    RETURN f, collect(distinct {note: n.name, type: type(r), category: n.category}) as notes, 
+           collect(distinct ac.name) as accords
+    """
+    try:
+        results = client.execute_query(query, {"frag_id": fragrance_id})
+        if not results:
+            raise HTTPException(status_code=404, detail="Fragrance not found")
+            
+        record = results[0]
+        f_node = record["f"]
+        
+        # Parse notes
+        top, mid, base = [], [], []
+        for n in record["notes"]:
+            if n.get("note"):
+                note_cat = n.get("category", "").lower()
+                n_obj = FragranceNote(id=n["note"], name=n["note"], category=note_cat)
+                if "top" in note_cat: top.append(n_obj)
+                elif "mid" in note_cat: mid.append(n_obj)
+                else: base.append(n_obj)
+                
+        # Parse accords
+        accords = [FragranceAccord(id=a, name=a) for a in record["accords"] if a]
+        
+        return FragranceDetail(
+            id=f_node.get("id", fragrance_id),
+            name=f_node.get("name", "Unknown"),
+            brand=f_node.get("brand", "Unknown"),
+            year=f_node.get("year", None),
+            concentration=f_node.get("concentration", "EDP"),
+            gender_label=f_node.get("gender_label", "N/A"),
+            description=f_node.get("description", ""),
+            top_notes=top,
+            middle_notes=mid,
+            base_notes=base,
+            accords=accords,
+            similarity_score=None
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph query failed: {e}")
+        raise HTTPException(status_code=500, detail="Database error")
 
 @router.get("/search", response_model=List[FragranceSearchResult])
 async def search_fragrances(
@@ -124,24 +179,47 @@ async def search_fragrances(
     limit: int = Query(10, ge=1, le=50),
     user_id: Optional[int] = Depends(get_optional_user_id),
 ) -> List[FragranceSearchResult]:
-    """Search fragrances by name, brand, or accord.
+    """Search fragrances by name, brand, or accord."""
+    client = get_graph_client()
+    if not client:
+        return []
+
+    # Simplified graph search
+    conditions = []
+    params: dict[str, Any] = {"limit": limit}
     
-    Args:
-        q: Fragrance name search query
-        brand: Brand name filter
-        accord: Accord filter
-        limit: Max results (default 10, max 50)
-        user_id: Optional authenticated user (for personalized similarity)
+    if q:
+        conditions.append("toLower(f.name) CONTAINS toLower($q)")
+        params["q"] = q
+    if brand:
+        conditions.append("toLower(f.brand) CONTAINS toLower($brand)")
+        params["brand"] = brand
         
-    Returns:
-        List of FragranceSearchResult with top accords and optional similarity score
+    where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    
+    query = f"""
+    MATCH (f:Fragrance)
+    {where_clause}
+    OPTIONAL MATCH (f)-[:BELONGS_TO_ACCORD]->(a:Accord)
+    RETURN f, collect(distinct a.name) as accords
+    LIMIT $limit
     """
-    # TODO: Query Neo4j using full-text search or Cypher patterns
-    # TODO: If user_id provided, score each result against user taste vector
     
-    logger.info(f"GET /fragrances/search (q: {q}, brand: {brand}, accord: {accord}, limit: {limit})")
-    
-    return []
+    try:
+        results = client.execute_query(query, params)
+        return [
+            FragranceSearchResult(
+                id=r["f"].get("id"),
+                name=r["f"].get("name"),
+                brand=r["f"].get("brand", "Unknown"),
+                year=r["f"].get("year"),
+                top_accords=list(r["accords"])[:3],
+                similarity_score=None
+            ) for r in results
+        ]
+    except Exception as e:
+        logger.error(f"Search query failed: {e}")
+        return []
 
 
 @router.post("/recommend/text", response_model=RecommendationJob)
@@ -176,9 +254,22 @@ async def recommend_by_text(
     
     logger.info(f"Created recommendation job {job_id} for query: {request.query[:50]}")
     
-    # TODO: Enqueue Celery task for async recommendation generation
-    # TODO: Task will encode query with Sentence-BERT, score against all fragrances,
-    #       optionally apply user taste vector, rank and store results
+    try:
+        async_task = recommend_by_text_task.delay(
+            job_id=job_id,
+            query=request.query,
+            limit=request.limit,
+            user_id=user_id,
+        )
+        recommendation_jobs[job_id]["celery_task_id"] = async_task.id
+    except Exception as e:
+        logger.error(f"Failed to enqueue text recommendation task for {job_id}: {e}")
+        recommendation_jobs[job_id]["status"] = "failed"
+        recommendation_jobs[job_id]["error"] = str(e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Recommendation queue unavailable",
+        )
     
     return RecommendationJob(
         job_id=job_id,
@@ -209,6 +300,26 @@ async def get_recommendation_result(
         )
     
     job = recommendation_jobs[job_id]
+
+    if job["status"] == "processing" and job.get("celery_task_id"):
+        result = AsyncResult(job["celery_task_id"], app=celery_app)
+        if result.successful():
+            payload = result.result if isinstance(result.result, dict) else {}
+            job["status"] = "completed"
+            job["results"] = payload.get("fragrances", [])
+            raw_generated_at = payload.get("generated_at")
+            if isinstance(raw_generated_at, datetime):
+                job["generated_at"] = raw_generated_at
+            elif isinstance(raw_generated_at, str):
+                try:
+                    job["generated_at"] = datetime.fromisoformat(raw_generated_at.replace("Z", "+00:00"))
+                except ValueError:
+                    job["generated_at"] = datetime.now(timezone.utc)
+            else:
+                job["generated_at"] = datetime.now(timezone.utc)
+        elif result.failed():
+            job["status"] = "failed"
+            job["error"] = str(result.result)
     
     if job["status"] == "processing":
         return RecommendationJob(
@@ -220,7 +331,7 @@ async def get_recommendation_result(
         return RecommendationResult(
             job_id=job_id,
             fragrances=job["results"] or [],
-            generated_at=job.get("generated_at"),
+            generated_at=job.get("generated_at") or datetime.now(timezone.utc),
         )
     elif job["status"] == "failed":
         raise HTTPException(
@@ -270,10 +381,21 @@ async def recommend_by_profile(
     
     logger.info(f"Created profile recommendation job {job_id} for user {user_id}")
     
-    # TODO: Enqueue Celery task for async recommendation
-    # TODO: Task will retrieve user taste vector from cache/DB,
-    #       score all fragrances via GraphSAGE + BPR personalization,
-    #       rank and store results
+    try:
+        async_task = recommend_by_profile_task.delay(
+            job_id=job_id,
+            user_id=user_id,
+            limit=limit,
+        )
+        recommendation_jobs[job_id]["celery_task_id"] = async_task.id
+    except Exception as e:
+        logger.error(f"Failed to enqueue profile recommendation task for {job_id}: {e}")
+        recommendation_jobs[job_id]["status"] = "failed"
+        recommendation_jobs[job_id]["error"] = str(e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Recommendation queue unavailable",
+        )
     
     return RecommendationJob(
         job_id=job_id,

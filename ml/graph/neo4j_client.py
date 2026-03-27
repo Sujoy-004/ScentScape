@@ -8,8 +8,7 @@ import logging
 from contextlib import contextmanager
 from typing import Any, Iterator, Optional
 
-from neo4j import AsyncDriver, AsyncSession, Driver, Session
-from neo4j import auth as neo4j_auth
+from neo4j import Driver, Session, basic_auth, GraphDatabase, READ_ACCESS, WRITE_ACCESS
 from neo4j import exceptions
 
 logger = logging.getLogger(__name__)
@@ -20,9 +19,8 @@ class Neo4jClient:
 
     _instance: Optional["Neo4jClient"] = None
     _driver: Optional[Driver] = None
-    _async_driver: Optional[AsyncDriver] = None
 
-    def __new__(cls) -> "Neo4jClient":
+    def __new__(cls, *args, **kwargs) -> "Neo4jClient":
         """Singleton pattern to ensure only one client instance."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -51,13 +49,13 @@ class Neo4jClient:
         """
         if self._driver is None:
             try:
-                self._driver = Driver(
+                self._driver = GraphDatabase.driver(
                     uri,
-                    auth=neo4j_auth.basic(user, password),
+                    auth=basic_auth(user, password),
                     encrypted=encrypted,
                     max_connection_pool_size=max_connection_pool_size,
                     connection_timeout=connection_timeout,
-                    max_retry_attempts=max_retry_attempts,
+                    max_transaction_retry_time=float(max_retry_attempts),
                 )
                 logger.info(f"Neo4j driver initialized: {uri}")
             except Exception as e:
@@ -67,8 +65,8 @@ class Neo4jClient:
     @classmethod
     def get_instance(cls) -> "Neo4jClient":
         """Get singleton instance."""
-        if cls._instance is None:
-            cls._instance = cls.__new__(cls)
+        if cls._instance is None or cls._instance._driver is None:
+            raise RuntimeError("Neo4j client not initialized. Call init_neo4j() first.")
         return cls._instance
 
     def get_driver(self) -> Driver:
@@ -97,22 +95,10 @@ class Neo4jClient:
             session.close()
 
     @contextmanager
-    def async_session(self) -> Iterator[AsyncSession]:
-        """Context manager for async Neo4j session.
-
-        Yields:
-            Async Neo4j Session
-
-        Example:
-            async with neo4j_client.async_session() as sess:
-                result = await sess.run("MATCH (f:Fragrance) RETURN f LIMIT 10")
-        """
-        driver = self.get_driver()
-        session = driver.session()
-        try:
+    def async_session(self) -> Iterator[Session]:
+        """Backward-compatible alias for session()."""
+        with self.session() as session:
             yield session
-        finally:
-            session.close()
 
     @contextmanager
     def tx(self, access_mode: str = "WRITE") -> Iterator[Any]:
@@ -128,13 +114,11 @@ class Neo4jClient:
             with neo4j_client.tx() as tx:
                 result = tx.run("CREATE (f:Fragrance $props) RETURN f", props={...})
         """
-        with self.session() as session:
-            if access_mode == "READ":
-                with session.begin_transaction() as tx:
-                    yield tx
-            else:
-                with session.begin_transaction(write=True) as tx:
-                    yield tx
+        mode = READ_ACCESS if access_mode == "READ" else WRITE_ACCESS
+        driver = self.get_driver()
+        with driver.session(default_access_mode=mode) as session:
+            with session.begin_transaction() as tx:
+                yield tx
 
     def execute_query(
         self,
@@ -189,14 +173,15 @@ class Neo4jClient:
         try:
             with self.session() as session:
                 result = session.run(query, parameters or {})
-                # Consume result to ensure write completes
+                # Consume to guarantee counters are finalized before returning.
                 list(result)
+                summary = result.consume()
                 return {
-                    "nodes_created": result.consume().counters.nodes_created,
-                    "nodes_deleted": result.consume().counters.nodes_deleted,
-                    "relationships_created": result.consume().counters.relationships_created,
-                    "relationships_deleted": result.consume().counters.relationships_deleted,
-                    "properties_set": result.consume().counters.properties_set,
+                    "nodes_created": summary.counters.nodes_created,
+                    "nodes_deleted": summary.counters.nodes_deleted,
+                    "relationships_created": summary.counters.relationships_created,
+                    "relationships_deleted": summary.counters.relationships_deleted,
+                    "properties_set": summary.counters.properties_set,
                 }
         except exceptions.ClientError as e:
             logger.error(f"Neo4j write error: {e}")
@@ -220,7 +205,7 @@ class Neo4jClient:
         """
         try:
             with self.session() as session:
-                session.run("RETURN 1")
+                session.run("RETURN 1").single()
             logger.info("Neo4j connection verified")
             return True
         except Exception as e:

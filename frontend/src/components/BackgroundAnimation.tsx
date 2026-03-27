@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface Particle {
   x: number;
@@ -24,11 +24,15 @@ interface Bottle {
 
 export function BackgroundAnimation() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [scrollY, setScrollY] = useState(0);
   const particlesRef = useRef<Particle[]>([]);
   const bottlesRef = useRef<Bottle[]>([]);
   const timeRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
   const animationIdRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef(0);
+  const isFinePointerRef = useRef(false);
+  const isScrollActiveRef = useRef(false);
+  const scrollStopTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -37,10 +41,23 @@ export function BackgroundAnimation() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let radialGlow: CanvasGradient;
+
     // Set canvas size
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      radialGlow = ctx.createRadialGradient(
+        canvas.width / 2,
+        canvas.height / 2,
+        0,
+        canvas.width / 2,
+        canvas.height / 2,
+        canvas.width * 0.6,
+      );
+      radialGlow.addColorStop(0, 'rgba(139, 94, 60, 0.06)');
+      radialGlow.addColorStop(0.5, 'rgba(228, 194, 133, 0.03)');
+      radialGlow.addColorStop(1, 'transparent');
     };
     resizeCanvas();
 
@@ -60,7 +77,7 @@ export function BackgroundAnimation() {
     const drawBottle = (x: number, y: number, opacity: number) => {
       ctx.save();
       ctx.globalAlpha = opacity * 0.8;
-      ctx.strokeStyle = `rgba(45, 90, 61, 0.7)`; // Forest green bottles
+      ctx.strokeStyle = `rgba(244, 187, 146, ${opacity * 0.5})`; // Amber bottles
       ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
 
@@ -76,16 +93,19 @@ export function BackgroundAnimation() {
       ctx.stroke();
 
       // Bottle cap (accent color)
-      ctx.fillStyle = `rgba(201, 154, 110, ${opacity * 0.6})`; // Terracotta cap
+      ctx.fillStyle = `rgba(228, 194, 133, ${opacity * 0.7})`; // Gold cap
       ctx.fillRect(x - 5, y - 14, 10, 3);
 
       ctx.restore();
     };
 
+    isFinePointerRef.current = window.matchMedia('(pointer: fine)').matches;
+
     // Initialize particles
     const initParticles = () => {
       particlesRef.current = [];
-      for (let i = 0; i < 150; i++) {
+      const particleCount = isFinePointerRef.current ? 44 : 80;
+      for (let i = 0; i < particleCount; i++) {
         particlesRef.current.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
@@ -93,7 +113,7 @@ export function BackgroundAnimation() {
           vy: (Math.random() - 0.5) * 0.5,
           size: Math.random() * 3 + 1,
           opacity: Math.random() * 0.6 + 0.2,
-          color: Math.random() > 0.5 ? '#2D5A3D' : '#C99A6E', // Forest Green or Terracotta
+          color: Math.random() > 0.5 ? '#f4bb92' : '#e4c285', // Amber or Gold
           phase: 'floating',
         });
       }
@@ -101,20 +121,24 @@ export function BackgroundAnimation() {
     initParticles();
 
     // Animation loop
-    const animate = () => {
+    const animate = (timestamp: number) => {
+      const frameBudget = isFinePointerRef.current ? 1000 / 36 : 1000 / 45;
+      if (timestamp - lastFrameTimeRef.current < frameBudget) {
+        animationIdRef.current = requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTimeRef.current = timestamp;
+
       timeRef.current += 1;
       const cycle = timeRef.current % 800; // 8 second cycle at 100fps
+      const reduceDuringScroll = isFinePointerRef.current && isScrollActiveRef.current;
 
       // Clear canvas with light botanical background
-      ctx.fillStyle = '#F9F6F1'; // Light beige background
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Dark velvet background — transparent so CSS background shows through
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw animated background gradient (subtle botanical undertone)
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, 'rgba(232, 240, 235, 0.3)'); // Light green overlay
-      gradient.addColorStop(0.5, 'rgba(249, 246, 241, 0.2)'); // Center neutral
-      gradient.addColorStop(1, 'rgba(201, 154, 110, 0.1)'); // Terracotta accent
-      ctx.fillStyle = gradient;
+      // Subtle radial glow at center
+      ctx.fillStyle = radialGlow;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Draw bottles
@@ -138,11 +162,12 @@ export function BackgroundAnimation() {
 
         // Apply physics based on phase
         if (particle.phase === 'floating') {
-          particle.vx += (Math.random() - 0.5) * 0.1;
-          particle.vy += (Math.random() - 0.5) * 0.1;
+          const drift = 0.025;
+          particle.vx += Math.sin((timeRef.current + index * 7) * 0.02) * drift;
+          particle.vy += Math.cos((timeRef.current + index * 9) * 0.02) * drift;
           particle.vx *= 0.98;
           particle.vy *= 0.98;
-        } else if (particle.phase === 'converging') {
+        } else if (particle.phase === 'converging' && !reduceDuringScroll) {
           // Particles converge toward center (matching/recommendation)
           const centerX = canvas.width / 2;
           const centerY = canvas.height / 2;
@@ -156,7 +181,7 @@ export function BackgroundAnimation() {
           }
           particle.vx *= 0.95;
           particle.vy *= 0.95;
-        } else {
+        } else if (!reduceDuringScroll) {
           // Spreading phase (results displaying)
           const centerX = canvas.width / 2;
           const centerY = canvas.height / 2;
@@ -170,6 +195,9 @@ export function BackgroundAnimation() {
           }
           particle.vx *= 0.95;
           particle.vy *= 0.95;
+        } else {
+          particle.vx *= 0.985;
+          particle.vy *= 0.985;
         }
 
         // Update position
@@ -192,7 +220,7 @@ export function BackgroundAnimation() {
         }
 
         // Draw particle with glow effect
-        const glowColor = particle.color === '#2D5A3D' ? 'rgba(45, 90, 61, 0.3)' : 'rgba(201, 154, 110, 0.3)';
+        const glowColor = particle.color === '#f4bb92' ? 'rgba(244, 187, 146, 0.2)' : 'rgba(228, 194, 133, 0.2)';
         
         // Glow
         ctx.fillStyle = glowColor;
@@ -210,9 +238,9 @@ export function BackgroundAnimation() {
       });
 
       // Draw connection lines during converging phase
-      if (cycle >= 200 && cycle < 500) {
+      if (!reduceDuringScroll && cycle >= 200 && cycle < 500) {
         const connectionProgress = (cycle - 200) / 300;
-        ctx.strokeStyle = `rgba(45, 90, 61, ${0.2 * connectionProgress})`;
+        ctx.strokeStyle = `rgba(244, 187, 146, ${0.15 * connectionProgress})`;
         ctx.lineWidth = 0.5;
 
         bottlesRef.current.forEach((bottle) => {
@@ -226,9 +254,9 @@ export function BackgroundAnimation() {
       }
 
       // Draw match score indicators during spreading phase
-      if (cycle >= 500) {
+      if (!reduceDuringScroll && cycle >= 500) {
         const spreadProgress = (cycle - 500) / 300;
-        ctx.fillStyle = `rgba(201, 154, 110, ${0.6 * (1 - spreadProgress)})`;
+        ctx.fillStyle = `rgba(244, 187, 146, ${0.6 * (1 - spreadProgress)})`;
         ctx.font = '14px Inter';
         ctx.textAlign = 'center';
 
@@ -242,20 +270,34 @@ export function BackgroundAnimation() {
       animationIdRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationIdRef.current = requestAnimationFrame(animate);
 
-    // Handle scroll for parallax
+    // Apply parallax directly to the canvas to avoid React re-renders on scroll.
     const handleScroll = () => {
-      setScrollY(window.scrollY);
+      isScrollActiveRef.current = true;
+      if (scrollStopTimerRef.current !== null) {
+        clearTimeout(scrollStopTimerRef.current);
+      }
+      scrollStopTimerRef.current = window.setTimeout(() => {
+        isScrollActiveRef.current = false;
+      }, 120);
+
+      scrollOffsetRef.current = window.scrollY * 0.32;
+      canvas.style.transform = `translate3d(0, ${scrollOffsetRef.current}px, 0)`;
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Handle resize
     window.addEventListener('resize', resizeCanvas);
 
+    handleScroll();
+
     return () => {
       if (animationIdRef.current !== null) {
         cancelAnimationFrame(animationIdRef.current);
+      }
+      if (scrollStopTimerRef.current !== null) {
+        clearTimeout(scrollStopTimerRef.current);
       }
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', resizeCanvas);
@@ -272,7 +314,8 @@ export function BackgroundAnimation() {
         left: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        transform: `translateY(${scrollY * 0.5}px)`, // Parallax effect
+        transform: 'translate3d(0, 0, 0)',
+        willChange: 'transform',
         display: 'block',
       }}
     />

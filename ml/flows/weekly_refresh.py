@@ -11,17 +11,17 @@ Scheduled to run weekly on Sundays at 2:00 AM UTC.
 """
 
 import logging
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
 from prefect import flow, task, get_run_logger
-from prefect.schedules import CronSchedule
 
 from ml.graph import init_neo4j, close_neo4j
 from ml.pipeline.clean import FragranceDataCleaner
 from ml.pipeline.ingest import FragranceGraphIngestor
-from ml.tests.test_graph import GraphValidator
+from ml.tests.test_graph import GraphValidator, summarize_validation_results
 
 
 logger = logging.getLogger(__name__)
@@ -108,14 +108,15 @@ def clean_fragrances(raw_data_path: Optional[Path]) -> Optional[Path]:
         
         # Clean
         cleaner = FragranceDataCleaner()
-        cleaned, stats = cleaner.clean_fragrance_list(fragrances)
+        cleaned = cleaner.clean_fragrance_list(fragrances)
+        stats = cleaner.report()
         
         run_logger.info(f"Cleaned {len(cleaned)} fragrances")
         run_logger.info(
             f"  - Duplicates removed: {stats['duplicates_removed']}"
         )
         run_logger.info(f"  - Invalid: {stats['invalid_records']}")
-        run_logger.info(f"  - Removal rate: {stats['removal_rate']:.1%}")
+        run_logger.info(f"  - Removal rate: {stats['removal_rate']:.1f}%")
         
         # Save cleaned data
         cleaned_path = raw_data_path.parent / "cleaned_fragrances.json"
@@ -133,9 +134,9 @@ def clean_fragrances(raw_data_path: Optional[Path]) -> Optional[Path]:
 @task(retries=2, retry_delay_seconds=30)
 def ingest_to_neo4j(
     cleaned_data_path: Optional[Path],
-    neo4j_uri: str = "neo4j://localhost:7687",
-    neo4j_user: str = "neo4j",
-    neo4j_password: str = "password",
+    neo4j_uri: str = os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+    neo4j_user: str = os.getenv("NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j")),
+    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "password"),
 ) -> dict:
     """Task: Ingest cleaned fragrances into Neo4j.
     
@@ -185,9 +186,11 @@ def ingest_to_neo4j(
 
 @task
 def validate_graph(
-    neo4j_uri: str = "neo4j://localhost:7687",
-    neo4j_user: str = "neo4j",
-    neo4j_password: str = "password",
+    neo4j_uri: str = os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+    neo4j_user: str = os.getenv("NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j")),
+    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "password"),
+    validation_profile: str = os.getenv("SCENTSCAPE_VALIDATION_PROFILE", "staging"),
+    strict_validation: bool = os.getenv("SCENTSCAPE_VALIDATION_STRICT", "false").lower() in {"1", "true", "yes", "on"},
 ) -> dict:
     """Task: Validate graph integrity after ingestion.
     
@@ -203,22 +206,37 @@ def validate_graph(
     
     try:
         client = init_neo4j(neo4j_uri, neo4j_user, neo4j_password)
-        validator = GraphValidator(client)
+        validator = GraphValidator(
+            client,
+            profile=validation_profile,
+            strict=strict_validation,
+        )
         
         run_logger.info("Validating graph integrity...")
         results = validator.validate_all()
+        summary = summarize_validation_results(results)
         
-        passed = sum(1 for v in results.values() if v.get("passed"))
-        total = len(results)
+        passed = summary["passed_check_count"]
+        total = summary["total_checks"]
         
         run_logger.info(f"✓ Validation: {passed}/{total} tests passed")
+        run_logger.info(
+            "  - Failed checks: %s, Query errors: %s",
+            summary["failed_check_count"],
+            summary["query_error_count"],
+        )
         
         for test_name, test_result in results.items():
             status = "✓" if test_result.get("passed") else "✗"
             run_logger.info(f"  {status} {test_name}")
         
         close_neo4j()
-        return results
+        return {
+            "profile": validation_profile,
+            "strict": validator.strict,
+            "results": results,
+            "summary": summary,
+        }
     
     except Exception as e:
         run_logger.error(f"Validation failed: {e}")
@@ -230,9 +248,11 @@ def validate_graph(
     description="Weekly pipeline: scrape → clean → ingest → validate fragrances",
 )
 def weekly_fragrance_etl(
-    neo4j_uri: str = "neo4j://localhost:7687",
-    neo4j_user: str = "neo4j",
-    neo4j_password: str = "password",
+    neo4j_uri: str = os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+    neo4j_user: str = os.getenv("NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j")),
+    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "password"),
+    validation_profile: str = os.getenv("SCENTSCAPE_VALIDATION_PROFILE", "staging"),
+    strict_validation: bool = os.getenv("SCENTSCAPE_VALIDATION_STRICT", "false").lower() in {"1", "true", "yes", "on"},
 ):
     """Main ETL workflow.
     
@@ -273,9 +293,36 @@ def weekly_fragrance_etl(
     
     # Step 4: Validate
     run_logger.info("\n[Step 4/4] Validating graph...")
-    validation_results = validate_graph(neo4j_uri, neo4j_user, neo4j_password)
+    validation_results = validate_graph(
+        neo4j_uri,
+        neo4j_user,
+        neo4j_password,
+        validation_profile,
+        strict_validation,
+    )
     if validation_results:
-        run_logger.info(f"✓ Validation completed")
+        summary = validation_results.get("summary", {})
+        query_errors = summary.get("query_error_count", 0)
+        failed_checks = summary.get("failed_check_count", 0)
+
+        if query_errors > 0:
+            raise RuntimeError(
+                f"Validation query errors detected ({query_errors}). Blocking pipeline completion."
+            )
+
+        if strict_validation and failed_checks > 0:
+            raise RuntimeError(
+                f"Strict validation failed with {failed_checks} failed checks."
+            )
+
+        if failed_checks > 0:
+            run_logger.warning(
+                "⚠ Validation completed with warnings: %s failed checks (strict=%s)",
+                failed_checks,
+                strict_validation,
+            )
+        else:
+            run_logger.info("✓ Validation completed")
     else:
         run_logger.warning("⚠ Validation failed")
     

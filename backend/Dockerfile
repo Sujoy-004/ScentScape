@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd -m -u 1000 appuser
 
 # Copy and install Python dependencies
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir -e .
 

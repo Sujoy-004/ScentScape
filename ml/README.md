@@ -76,6 +76,47 @@ python ml/pipeline/populate_pinecone.py
 python ml/training/evaluate.py
 ```
 
+## Validation Profiles and Release Gates
+
+Production validation now uses profile-based thresholds and strict-mode gates.
+
+- `SCENTSCAPE_VALIDATION_PROFILE=local|staging|production`
+- `SCENTSCAPE_VALIDATION_STRICT=true|false`
+
+### Graph Validation
+
+```bash
+python -m ml.tests.test_graph --profile local
+python -m ml.tests.test_graph --profile staging
+python -m ml.tests.test_graph --profile production --strict
+```
+
+### End-to-End Integration Validation
+
+```bash
+python -m ml.tests.test_integration --cleanup --profile local
+python -m ml.tests.test_integration --cleanup --profile production --strict
+```
+
+Integration artifacts are written to `ml/logs/integration/` by default.
+
+### Production Release Gate
+
+Run deterministic multi-cycle release checks before promotion:
+
+```bash
+python -m ml.tests.release_gate --profile production --strict --cycles 3
+```
+
+Release gate artifacts are written to `ml/logs/release_gate/` by default.
+
+### Recommended Promotion Policy
+
+1. Zero validation query errors.
+2. Zero failed checks in strict mode.
+3. Deterministic graph totals across repeat runs.
+4. Artifact attached to release sign-off.
+
 ## Models
 
 ### GraphSAGE (Graph Embeddings)

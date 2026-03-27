@@ -70,6 +70,10 @@ Thumbs.db
 logs/
 *.log
 
+# Local runtime databases
+backend/local_dev.db
+backend/local_test.db
+
 # Git
 .git/
 
@@ -81,3 +85,5 @@ frontend/tests/visual-regression.spec.ts-snapshots/
 # Agent State Files
 progress.json
 progress_phase6.json
+.github/agents/
+todo.html

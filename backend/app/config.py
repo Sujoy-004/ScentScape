@@ -1,27 +1,50 @@
 """Backend configuration module."""
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
+from pydantic_settings import SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
     # Database
-    database_url: str = "postgresql://scentscape:scentscape_password@localhost:5432/scentscape"
+    database_url: str = "postgresql+asyncpg://scentscape:scentscape_password@localhost:5432/scentscape"
 
     # Neo4j
     neo4j_uri: str = "neo4j://localhost:7687"
-    neo4j_user: str = "neo4j"
+    neo4j_user: str = Field(
+        default="neo4j",
+        validation_alias=AliasChoices("NEO4J_USERNAME", "NEO4J_USER"),
+    )
     neo4j_password: str = "neo4j_password"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
     # JWT
-    jwt_secret_key: str = "dev_secret_key_change_in_production"
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 15
-    refresh_token_expire_days: int = 7
+    jwt_secret_key: str = Field(
+        default="dev_secret_key_change_in_production",
+        validation_alias=AliasChoices("JWT_SECRET_KEY", "SECRET_KEY"),
+    )
+    jwt_algorithm: str = Field(
+        default="HS256",
+        validation_alias=AliasChoices("JWT_ALGORITHM", "ALGORITHM"),
+    )
+    access_token_expire_minutes: int = Field(
+        default=15,
+        validation_alias=AliasChoices("ACCESS_TOKEN_EXPIRE_MINUTES"),
+    )
+    refresh_token_expire_days: int = Field(
+        default=7,
+        validation_alias=AliasChoices("REFRESH_TOKEN_EXPIRE_DAYS"),
+    )
 
     # Sentry
     sentry_dsn: str | None = None
@@ -31,9 +54,5 @@ class Settings(BaseSettings):
     # API
     api_prefix: str = "/api/v1"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-
-
 settings = Settings()
+

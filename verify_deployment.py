@@ -40,9 +40,16 @@ except ImportError:
     missing_packages.append('neo4j')
 
 try:
-    import pinecone
+    from pinecone import Pinecone
+    pinecone = None
 except ImportError:
-    missing_packages.append('pinecone-client')
+    try:
+        import pinecone  # type: ignore[no-redef]
+        Pinecone = None  # type: ignore[assignment]
+    except ImportError:
+        missing_packages.append('pinecone-client')
+        pinecone = None
+        Pinecone = None  # type: ignore[assignment]
 
 if missing_packages:
     print("❌ Missing dependencies:")
@@ -114,6 +121,10 @@ class DeploymentVerifier:
         """Test PostgreSQL connection."""
         print("🔍 Testing PostgreSQL...")
         try:
+            # asyncpg.connect expects a native PostgreSQL URI, not SQLAlchemy dialect prefixes.
+            if connection_string.startswith("postgresql+asyncpg://"):
+                connection_string = connection_string.replace("postgresql+asyncpg://", "postgresql://", 1)
+
             async def test_conn():
                 conn = await asyncpg.connect(connection_string)
                 result = await conn.fetchval("SELECT 1")
@@ -169,16 +180,44 @@ class DeploymentVerifier:
     def test_pinecone(self, api_key: str, environment: str, index_name: str) -> bool:
         """Test Pinecone connection."""
         print("🔍 Testing Pinecone...")
+        if not api_key or api_key == "your_pinecone_api_key_here":
+            print("⚠️  Pinecone: API key not provided (optional for local)")
+            return True
         try:
-            pinecone.init(api_key=api_key, environment=environment)
-            indexes = pinecone.list_indexes()
-            if index_name in indexes:
-                pinecone.describe_index(index_name)  # Verify index exists
-                print(f"✅ Pinecone: Connected (index: {index_name})")
-                return True
+            if Pinecone is not None:
+                # Pinecone SDK v3+
+                client = Pinecone(api_key=api_key)
+                indexes_response = client.list_indexes()
+                indexes: list[str] = []
+
+                if hasattr(indexes_response, "names") and callable(indexes_response.names):
+                    indexes = list(indexes_response.names())
+                elif hasattr(indexes_response, "indexes"):
+                    indexes = [
+                        item.get("name") if isinstance(item, dict) else getattr(item, "name", "")
+                        for item in getattr(indexes_response, "indexes", [])
+                    ]
+                else:
+                    indexes = list(indexes_response) if isinstance(indexes_response, list) else []
+
+                if index_name in indexes:
+                    client.describe_index(index_name)
+                    print(f"✅ Pinecone: Connected (index: {index_name})")
+                    return True
+            elif pinecone is not None:
+                # Legacy pinecone-client SDK
+                pinecone.init(api_key=api_key, environment=environment)
+                indexes = pinecone.list_indexes()
+                if index_name in indexes:
+                    pinecone.describe_index(index_name)
+                    print(f"✅ Pinecone: Connected (index: {index_name})")
+                    return True
             else:
-                print(f"❌ Pinecone: Index '{index_name}' not found")
+                print("❌ Pinecone SDK not available")
                 return False
+
+            print(f"❌ Pinecone: Index '{index_name}' not found")
+            return False
         except Exception as e:
             print(f"❌ Pinecone error: {e}")
             return False

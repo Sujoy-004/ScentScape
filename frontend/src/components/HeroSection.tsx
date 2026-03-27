@@ -1,68 +1,147 @@
 'use client';
 
-import React from 'react';
-import Image from 'next/image';
+import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackgroundAnimation } from './BackgroundAnimation';
 
+/* ── HeroSection ── */
 export function HeroSection() {
   const router = useRouter();
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  // Cascade stagger animation on mount
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.querySelectorAll<HTMLElement>('.cascade-word').forEach((word, i) => {
+      word.style.animationDelay = `${0.15 + i * 0.12}s`;
+      word.classList.add('cascade-animate');
+    });
+  }, []);
+
   return (
-    <section className="hero-section">
-      {/* Animated Background Canvas */}
+    <section className="hero-section constellation-bg">
       <BackgroundAnimation />
+      <div className="hero-gradient" aria-hidden="true" />
 
-      {/* Hero Background with Gradient Overlay */}
-      <div className="hero-gradient"></div>
-
-      {/* Hero Content */}
       <div className="hero-container">
         <div className="hero-content">
-          <h1 className="hero-title" string="split" string-repeat="true" string-split="char">
-            Discover Your Perfect Scent
-          </h1>
-          <p className="hero-subtitle" string="split" string-repeat="true" string-split="word">
-            Personalized fragrance recommendations powered by AI. Find the signature scent that speaks to your essence.
+
+          {/* Eyebrow */}
+          <p className="hero-eyebrow animate-fade-in">
+            <span aria-hidden="true"
+              className="eyebrow-emoji super-magnetic-element"
+              string="magnetic"
+              string-radius="120"
+              string-strength="0.16"
+            >✦</span>
+            AI-Powered Fragrance Discovery
+            <span aria-hidden="true"
+              className="eyebrow-emoji super-magnetic-element"
+              string="magnetic"
+              string-radius="120"
+              string-strength="0.16"
+            >✦</span>
           </p>
 
+          {/* Cascading headline */}
+          <h1 className="hero-title" ref={titleRef}>
+            {['Discover', 'Your'].map((w, i) => (
+              <span key={i} className="cascade-word cascade-plain">{w}{' '}</span>
+            ))}
+            <br />
+            {['Perfect', 'Scent'].map((w, i) => (
+              <span
+                key={i}
+                className="cascade-word cascade-gradient"
+              >
+                {w}{i === 0 ? ' ' : ''}
+              </span>
+            ))}
+          </h1>
+
+          {/* Subtitle */}
+          <p className="hero-subtitle animate-fade-in" style={{ animationDelay: '0.7s' }}>
+            Personalized fragrance recommendations powered by graph AI.
+            <br />
+            Find the signature scent that speaks to your essence.
+          </p>
+
+          {/* CTA Buttons — low magnetic sensitivity */}
           <div className="hero-buttons">
-            <button 
+            <button
+              id="hero-cta-primary"
               className="btn btn-primary magnetic-element"
               onClick={() => router.push('/onboarding/quiz')}
-              string="magnetic" string-radius="800" string-strength="0.1"
+              string="magnetic"
+              string-radius="500"
+              string-strength="0.06"
+              aria-label="Start fragrance discovery quiz"
             >
-              Start Discovery
+              <span
+                className="btn-emoji super-magnetic-element"
+                string="magnetic"
+                string-radius="80"
+                string-strength="0.18"
+              >🌿</span>
+              Start Discovery →
             </button>
-            <button 
+            <button
+              id="hero-cta-secondary"
               className="btn btn-outline magnetic-element"
               onClick={() => router.push('/fragrances')}
-              string="magnetic" string-radius="800" string-strength="0.1"
+              string="magnetic"
+              string-radius="500"
+              string-strength="0.06"
+              aria-label="Browse fragrance collection"
             >
-              Learn More
+              <span
+                className="btn-emoji super-magnetic-element"
+                string="magnetic"
+                string-radius="80"
+                string-strength="0.18"
+              >✨</span>
+              Browse Fragrances
             </button>
           </div>
 
           {/* Trust Indicators */}
           <div className="trust-indicators">
-            <div className="indicator">
-              <span className="indicator-value">98%</span>
-              <span className="indicator-label">Match Satisfaction</span>
-            </div>
-            <div className="indicator">
-              <span className="indicator-value">1,000+</span>
-              <span className="indicator-label">Fragrance Database</span>
-            </div>
-            <div className="indicator">
-              <span className="indicator-value">50K+</span>
-              <span className="indicator-label">Happy Collectors</span>
-            </div>
+            {[
+              { value: '1,000+', label: 'Fragrances', emoji: '🧴' },
+              { value: '98%', label: 'Match Rate', emoji: '🎯' },
+              { value: '50K+', label: 'Collectors', emoji: '👑' },
+            ].map((item) => (
+              <div key={item.label} className="indicator">
+                <span
+                  className="indicator-emoji super-magnetic-element"
+                  string="magnetic"
+                  string-radius="100"
+                  string-strength="0.14"
+                  aria-hidden="true"
+                >
+                  {item.emoji}
+                </span>
+                <span className="indicator-value">{item.value}</span>
+                <span className="indicator-label">{item.label}</span>
+              </div>
+            ))}
           </div>
+
         </div>
+      </div>
+
+      {/* Scroll hint */}
+      <div aria-hidden="true" className="scroll-hint">
+        <span className="scroll-text">Scroll</span>
+        <div className="scroll-line" />
       </div>
     </section>
   );
 }
 
+
+/* ── SocialProofSection (Testimonials) ── */
 export function SocialProofSection() {
   const testimonials = [
     {
@@ -70,7 +149,7 @@ export function SocialProofSection() {
       name: 'Elena Rodriguez',
       role: 'Fragrance Collector',
       avatar: '👩‍🦱',
-      text: '"Finally found a tool that understands nuance. The recommendations are eerily accurate."',
+      text: 'Finally found a tool that understands nuance. The recommendations are eerily accurate — it found my signature scent in minutes.',
       rating: 5,
     },
     {
@@ -78,7 +157,7 @@ export function SocialProofSection() {
       name: 'Marcus Chen',
       role: 'Casual Buyer',
       avatar: '👨‍💼',
-      text: '"Saved me so much money by helping me understand what I actually like in scents."',
+      text: 'Saved me so much money by helping me understand what I actually like in scents. No more blind purchases.',
       rating: 5,
     },
     {
@@ -86,7 +165,7 @@ export function SocialProofSection() {
       name: 'Sophie Nolan',
       role: 'Perfume Enthusiast',
       avatar: '👩‍🎨',
-      text: '"The AI recommendations introduced me to indie brands I never would have found."',
+      text: 'The AI recommendations introduced me to indie brands I never would have discovered. The constellation graph is stunning.',
       rating: 5,
     },
   ];
@@ -94,29 +173,35 @@ export function SocialProofSection() {
   return (
     <section className="social-proof-section">
       <div className="container">
-        <h2 className="section-title">Trusted by Fragrance Lovers</h2>
-        <p className="section-subtitle">
-          See what people are saying about their scent discoveries
-        </p>
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-12)' }}>
+          <h2
+            className="section-title"
+            string="split"
+            string-split="word"
+          >
+            Trusted by Fragrance Lovers
+          </h2>
+          <p className="section-subtitle" style={{ margin: '0 auto' }}>
+            See what collectors are saying about their scent discoveries
+          </p>
+        </div>
 
         <div className="testimonials-grid">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.id} className="testimonial-card">
+          {testimonials.map((t) => (
+            <div key={t.id} className="testimonial-card glass-card">
               <div className="testimonial-header">
-                <div className="avatar">{testimonial.avatar}</div>
+                <div className="avatar">{t.avatar}</div>
                 <div className="author-info">
-                  <h3 className="author-name">{testimonial.name}</h3>
-                  <p className="author-role">{testimonial.role}</p>
+                  <h3 className="author-name">{t.name}</h3>
+                  <p className="author-role">{t.role}</p>
                 </div>
               </div>
-
-              <p className="testimonial-text">{testimonial.text}</p>
-
-              <div className="stars">
-                {[...Array(testimonial.rating)].map((_, i) => (
-                  <span key={i} className="star">⭐</span>
+              <div className="stars" aria-label={`${t.rating} stars`}>
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <span key={i} className="star">★</span>
                 ))}
               </div>
+              <p className="testimonial-text">"{t.text}"</p>
             </div>
           ))}
         </div>
@@ -125,41 +210,63 @@ export function SocialProofSection() {
   );
 }
 
+
+/* ── FeatureSection ── */
 export function FeatureSection() {
   const features = [
     {
       icon: '🌿',
       title: 'Personalized Matching',
-      description: 'AI analyzes your preferences to find your perfect fragrance match',
+      description: 'Graph neural networks analyze your taste profile to surface fragrances tuned exactly to you.',
     },
     {
       icon: '📊',
-      title: 'Expert Analysis',
-      description: 'Detailed breakdowns of fragrance notes, accords, and longevity',
+      title: 'Deep Note Analysis',
+      description: 'Detailed breakdowns of top, heart, and base notes with accord mapping and longevity data.',
     },
     {
       icon: '🔍',
-      title: 'Extensive Database',
-      description: '1,000+ fragrances from premium to indie and niche brands',
+      title: 'Text-Based Search',
+      description: 'Type "smoky vanilla with leather" and our AI finds matching fragrances instantly.',
     },
     {
-      icon: '💬',
-      title: 'Community Insights',
-      description: 'Connect with other collectors and share your discoveries',
+      icon: '✦',
+      title: 'Taste Constellation',
+      description: 'Visualize your scent preferences as a beautiful network graph of notes and accords.',
     },
   ];
 
   return (
     <section className="feature-section">
       <div className="container">
-        <h2 className="section-title">Why Choose ScentScape</h2>
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-12)' }}>
+          <h2
+            className="section-title"
+            string="split"
+            string-split="word"
+          >
+            Why ScentScape
+          </h2>
+        </div>
 
         <div className="features-grid">
-          {features.map((feature, index) => (
-            <div key={index} className="feature-card">
-              <div className="feature-icon">{feature.icon}</div>
-              <h3 className="feature-title">{feature.title}</h3>
-              <p className="feature-description">{feature.description}</p>
+          {features.map((f, i) => (
+            <div
+              key={i}
+              className="feature-card"
+              string="reveal"
+              string-reveal-delay={String(i * 100)}
+            >
+              <span
+                className="feature-icon super-magnetic-element"
+                string="magnetic"
+                string-radius="100"
+                string-strength="0.3"
+              >
+                {f.icon}
+              </span>
+              <h3 className="feature-title">{f.title}</h3>
+              <p className="feature-description">{f.description}</p>
             </div>
           ))}
         </div>

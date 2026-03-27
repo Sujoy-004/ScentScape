@@ -49,14 +49,14 @@ export function FragranceFamilies() {
 
         <div className="families-grid">
           {families.map((family, index) => (
-              <div key={index} className="family-card tilt-card" string="magnetic|glide" string-radius="800" string-strength="0.1" string-glide="0.3">
-              <div className="family-emoji super-magnetic-element" string="magnetic" string-radius="150" string-strength="0.5" style={{display: 'inline-block'}}>{family.emoji}</div>
+              <div key={index} className="family-card tilt-card" string="magnetic|glide" string-radius="320" string-strength="0.06" string-glide="0.22">
+              <div className="family-emoji super-magnetic-element" string="magnetic" string-radius="140" string-strength="0.2" style={{display: 'inline-block'}}>{family.emoji}</div>
               <h3 className="family-name">{family.name}</h3>
               <p className="family-description">{family.description}</p>
               <div className="family-notes">{family.notes}</div>
               <button 
                 className="family-btn magnetic-element"
-                string="magnetic" string-radius="400" string-strength="0.2"
+                string="magnetic" string-radius="260" string-strength="0.08"
                 onClick={() => router.push(`/families/${family.slug}`)}
               >
                 Explore Family

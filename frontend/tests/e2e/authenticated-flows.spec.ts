@@ -164,19 +164,16 @@ test.describe('Fragrance Browse Flow', () => {
     await page.goto('/fragrances');
 
     // Wait for cards to load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1200);
 
-    // Try to find and click fragrance card
-    const cardLinks = page.locator('a[href*="/fragrances/"]').filter({ hasText: /view|details?/i });
-    const linkCount = await cardLinks.count();
+    // Click a real card action to guarantee route transition.
+    const viewButton = page.locator('.frag-view-btn').first();
+    await expect(viewButton).toBeVisible();
+    await viewButton.click();
 
-    if (linkCount > 0) {
-      // Click first link
-      await cardLinks.first().click();
-
-      // Should be on fragrance detail page
-      expect(page.url()).toContain('/fragrances/');
-    }
+    // Should be on a dynamic fragrance detail route (/fragrances/:id).
+    await page.waitForURL(/\/fragrances\/.+/, { timeout: 5000 });
+    expect(page.url()).toMatch(/\/fragrances\/.+/);
   });
 
   test('should view families page', async ({ page }) => {

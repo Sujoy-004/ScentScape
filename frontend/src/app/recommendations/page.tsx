@@ -65,6 +65,22 @@ export default function RecommendationsPage() {
   const allFragrances = recommendations || [];
   const topMatches = allFragrances.slice(0, 10);
 
+  // No data at all → prompt quiz
+  if (!isLoading && topMatches.length === 0) {
+    return (
+      <div className="recommendations-error">
+        <div className="error-inner">
+          <span className="error-icon">✦</span>
+          <h2>Ready for your matches?</h2>
+          <p>Complete the taste quiz so we can curate your perfect fragrance profile.</p>
+          <button className="error-button" onClick={() => router.push('/onboarding/quiz')}>
+            Start the Quiz →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="recommendations-page">
       <div className="recommendations-container">
@@ -72,6 +88,7 @@ export default function RecommendationsPage() {
           <h1>Your Personalized Recommendations</h1>
           <p>Based on your fragrance preferences and taste profile</p>
         </div>
+
 
         <div className="recommendations-stats">
           <div className="stat">

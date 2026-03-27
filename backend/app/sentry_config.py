@@ -26,6 +26,11 @@ def init_sentry() -> None:
     if not settings.sentry_dsn:
         return
 
+    dsn = str(settings.sentry_dsn).strip()
+    # Ignore common template placeholders used in local/dev .env files.
+    if "your_sentry_key" in dsn or "project_id" in dsn:
+        return
+
     integrations = [FastApiIntegration()]
     
     if SqlAlchemyIntegration:
@@ -36,7 +41,7 @@ def init_sentry() -> None:
         integrations.append(RedisIntegration())
 
     sentry_sdk.init(
-        dsn=settings.sentry_dsn,
+        dsn=dsn,
         environment=settings.sentry_environment,
         traces_sample_rate=settings.sentry_traces_sample_rate,
         profiles_sample_rate=0.1,

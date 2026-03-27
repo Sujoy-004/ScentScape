@@ -34,7 +34,7 @@ export default function Navbar() {
             className="navbar-logo"
             onClick={() => router.push('/')}
           >
-            <span className="logo-icon">🌿</span>
+            <span className="logo-icon">✦</span>
             <span className="logo-text">ScentScape</span>
           </button>
         </div>
@@ -55,7 +55,8 @@ export default function Navbar() {
           <div className="navbar-links">
             {/* Public Links */}
             <button
-              className="nav-link" string="magnetic" string-strength="0.1" string-radius="150"
+              className="nav-link"
+              string="magnetic" string-strength="0.05" string-radius="140"
               onClick={() => {
                 router.push('/fragrances');
                 setIsOpen(false);
@@ -67,7 +68,8 @@ export default function Navbar() {
             {!isAuthenticated && (
               <>
                 <button
-                  className="nav-link" string="magnetic" string-strength="0.1" string-radius="150"
+                  className="nav-link"
+                  string="magnetic" string-strength="0.05" string-radius="140"
                   onClick={() => {
                     router.push('/auth/login');
                     setIsOpen(false);
@@ -76,7 +78,8 @@ export default function Navbar() {
                   Log In
                 </button>
                 <button
-                  className="nav-link nav-cta" string="magnetic" string-strength="0.2" string-radius="150"
+                  className="nav-link nav-cta"
+                  string="magnetic" string-strength="0.07" string-radius="150"
                   onClick={() => {
                     router.push('/auth/register');
                     setIsOpen(false);
@@ -90,7 +93,8 @@ export default function Navbar() {
             {isAuthenticated && (
               <>
                 <button
-                  className="nav-link" string="magnetic" string-strength="0.1" string-radius="150"
+                  className="nav-link"
+                  string="magnetic" string-strength="0.05" string-radius="140"
                   onClick={() => {
                     router.push('/onboarding/quiz');
                     setIsOpen(false);
@@ -99,7 +103,8 @@ export default function Navbar() {
                   Quiz
                 </button>
                 <button
-                  className="nav-link" string="magnetic" string-strength="0.1" string-radius="150"
+                  className="nav-link"
+                  string="magnetic" string-strength="0.05" string-radius="140"
                   onClick={() => {
                     router.push('/recommendations');
                     setIsOpen(false);
@@ -108,7 +113,8 @@ export default function Navbar() {
                   Recommendations
                 </button>
                 <button
-                  className="nav-link" string="magnetic" string-strength="0.1" string-radius="150"
+                  className="nav-link"
+                  string="magnetic" string-strength="0.05" string-radius="140"
                   onClick={() => {
                     router.push('/profile');
                     setIsOpen(false);
@@ -117,7 +123,8 @@ export default function Navbar() {
                   Profile
                 </button>
                 <button
-                  className="nav-link" string="magnetic" string-strength="0.1" string-radius="150"
+                  className="nav-link"
+                  string="magnetic" string-strength="0.05" string-radius="140"
                   onClick={() => {
                     router.push('/profile/wishlist');
                     setIsOpen(false);
@@ -129,7 +136,8 @@ export default function Navbar() {
                 <div className="navbar-divider"></div>
 
                 <button
-                  className="nav-link nav-logout" string="magnetic" string-strength="0.1" string-radius="150"
+                  className="nav-link nav-logout"
+                  string="magnetic" string-strength="0.05" string-radius="140"
                   onClick={() => {
                     handleLogout();
                     setIsOpen(false);

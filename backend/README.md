@@ -67,7 +67,7 @@ All configuration is loaded from environment variables. See `.env.example` for r
 
 Key settings:
 - `DATABASE_URL` — PostgreSQL connection string
-- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` — Knowledge graph
+- `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` — Knowledge graph
 - `REDIS_URL` — Cache and Celery broker
 - `PINECONE_API_KEY`, `PINECONE_INDEX_NAME` — Vector embeddings
 - `JWT_SECRET_KEY` — Token signing (generate with `openssl rand -hex 32`)

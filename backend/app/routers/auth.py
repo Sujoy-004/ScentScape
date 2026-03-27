@@ -4,7 +4,7 @@ Provides user registration, login, token refresh, and logout functionality.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -264,5 +264,4 @@ async def get_current_user(
     return UserProfile.from_orm(user)
 
 
-# Fix imports at top of file
-from datetime import timedelta
+

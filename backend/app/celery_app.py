@@ -32,6 +32,7 @@ celery_app.conf.update(
     task_routes={
         "app.tasks.recommend_by_text": {"queue": "recommendations"},
         "app.tasks.recommend_by_profile": {"queue": "recommendations"},
+        "app.tasks.rebuild_embeddings": {"queue": "ml"},
         "app.tasks.generate_user_embeddings": {"queue": "ml"},
     },
     

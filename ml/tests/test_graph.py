@@ -4,6 +4,8 @@ Validates Neo4j graph integrity and data quality.
 """
 
 import logging
+import os
+from dataclasses import dataclass
 from typing import Any
 
 from ml.graph import Neo4jClient
@@ -11,24 +13,116 @@ from ml.graph import Neo4jClient
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class ValidationProfile:
+    """Threshold bundle for a validation environment."""
+
+    name: str
+    min_fragrances: int
+    min_notes: int
+    min_accords: int
+    min_brands: int
+    min_edges_per_frag: int
+    min_name_pct: float
+    min_desc_pct: float
+
+
+PROFILE_PRESETS: dict[str, ValidationProfile] = {
+    "local": ValidationProfile(
+        name="local",
+        min_fragrances=50,
+        min_notes=90,
+        min_accords=20,
+        min_brands=20,
+        min_edges_per_frag=3,
+        min_name_pct=95.0,
+        min_desc_pct=90.0,
+    ),
+    "staging": ValidationProfile(
+        name="staging",
+        min_fragrances=500,
+        min_notes=200,
+        min_accords=60,
+        min_brands=50,
+        min_edges_per_frag=4,
+        min_name_pct=98.0,
+        min_desc_pct=95.0,
+    ),
+    "production": ValidationProfile(
+        name="production",
+        min_fragrances=1000,
+        min_notes=300,
+        min_accords=80,
+        min_brands=80,
+        min_edges_per_frag=5,
+        min_name_pct=99.0,
+        min_desc_pct=97.0,
+    ),
+}
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def summarize_validation_results(results: dict[str, Any]) -> dict[str, Any]:
+    """Summarize validation results into pass/fail/error buckets."""
+    total_checks = len(results)
+    query_errors = [k for k, v in results.items() if v.get("error")]
+    failed_checks = [k for k, v in results.items() if not v.get("passed")]
+    warning_checks = [k for k, v in results.items() if not v.get("passed") and not v.get("error")]
+    passed_checks = [k for k, v in results.items() if v.get("passed")]
+
+    return {
+        "total_checks": total_checks,
+        "passed_check_count": len(passed_checks),
+        "failed_check_count": len(failed_checks),
+        "warning_check_count": len(warning_checks),
+        "query_error_count": len(query_errors),
+        "passed_checks": passed_checks,
+        "failed_checks": failed_checks,
+        "warning_checks": warning_checks,
+        "query_error_checks": query_errors,
+    }
+
+
 class GraphValidator:
     """Validates fragrance knowledge graph integrity."""
 
-    # Minimum required counts for MVP
-    MIN_FRAGRANCES = 100
-    MIN_NOTES = 150
-    MIN_ACCORDS = 40
-    MIN_BRANDS = 30
-    MIN_EDGES_PER_FRAG = 3  # Relationships per fragrance
-
-    def __init__(self, neo4j_client: Neo4jClient):
+    def __init__(
+        self,
+        neo4j_client: Neo4jClient,
+        profile: str | None = None,
+        strict: bool | None = None,
+    ):
         """Initialize validator.
 
         Args:
             neo4j_client: Neo4j client instance
+            profile: Validation profile name (local/staging/production)
+            strict: If True, treat any failed check as release-blocking
         """
         self.neo4j = neo4j_client
         self.results = {}
+
+        selected_profile = (profile or os.getenv("SCENTSCAPE_VALIDATION_PROFILE", "local")).strip().lower()
+        if selected_profile not in PROFILE_PRESETS:
+            raise ValueError(
+                f"Unknown validation profile '{selected_profile}'. "
+                f"Expected one of: {', '.join(PROFILE_PRESETS.keys())}"
+            )
+
+        self.profile = PROFILE_PRESETS[selected_profile]
+        if strict is None:
+            self.strict = _env_bool(
+                "SCENTSCAPE_VALIDATION_STRICT",
+                default=(self.profile.name == "production"),
+            )
+        else:
+            self.strict = strict
 
     def validate_all(self) -> dict[str, Any]:
         """Run all validation checks.
@@ -36,7 +130,11 @@ class GraphValidator:
         Returns:
             Results dict with validation status
         """
-        logger.info("Starting graph validation...")
+        logger.info(
+            "Starting graph validation (profile=%s, strict=%s)...",
+            self.profile.name,
+            self.strict,
+        )
 
         tests = [
             ("fragrance_count", self.validate_fragrance_count),
@@ -64,6 +162,15 @@ class GraphValidator:
                     "error": str(e),
                 }
 
+        summary = summarize_validation_results(self.results)
+        logger.info(
+            "Validation summary: %s/%s passed, %s failed, %s query errors",
+            summary["passed_check_count"],
+            summary["total_checks"],
+            summary["failed_check_count"],
+            summary["query_error_count"],
+        )
+
         return self.results
 
     def validate_fragrance_count(self) -> dict[str, Any]:
@@ -76,12 +183,12 @@ class GraphValidator:
         result = self.neo4j.execute_query(query)
         count = result[0]["count"] if result else 0
 
-        passed = count >= self.MIN_FRAGRANCES
+        passed = count >= self.profile.min_fragrances
         return {
             "passed": passed,
             "count": count,
-            "minimum": self.MIN_FRAGRANCES,
-            "message": f"Found {count} fragrances (minimum: {self.MIN_FRAGRANCES})",
+            "minimum": self.profile.min_fragrances,
+            "message": f"Found {count} fragrances (minimum: {self.profile.min_fragrances})",
         }
 
     def validate_note_count(self) -> dict[str, Any]:
@@ -94,12 +201,12 @@ class GraphValidator:
         result = self.neo4j.execute_query(query)
         count = result[0]["count"] if result else 0
 
-        passed = count >= self.MIN_NOTES
+        passed = count >= self.profile.min_notes
         return {
             "passed": passed,
             "count": count,
-            "minimum": self.MIN_NOTES,
-            "message": f"Found {count} notes (minimum: {self.MIN_NOTES})",
+            "minimum": self.profile.min_notes,
+            "message": f"Found {count} notes (minimum: {self.profile.min_notes})",
         }
 
     def validate_accord_count(self) -> dict[str, Any]:
@@ -112,12 +219,12 @@ class GraphValidator:
         result = self.neo4j.execute_query(query)
         count = result[0]["count"] if result else 0
 
-        passed = count >= self.MIN_ACCORDS
+        passed = count >= self.profile.min_accords
         return {
             "passed": passed,
             "count": count,
-            "minimum": self.MIN_ACCORDS,
-            "message": f"Found {count} accords (minimum: {self.MIN_ACCORDS})",
+            "minimum": self.profile.min_accords,
+            "message": f"Found {count} accords (minimum: {self.profile.min_accords})",
         }
 
     def validate_brand_count(self) -> dict[str, Any]:
@@ -130,12 +237,12 @@ class GraphValidator:
         result = self.neo4j.execute_query(query)
         count = result[0]["count"] if result else 0
 
-        passed = count >= self.MIN_BRANDS
+        passed = count >= self.profile.min_brands
         return {
             "passed": passed,
             "count": count,
-            "minimum": self.MIN_BRANDS,
-            "message": f"Found {count} brands (minimum: {self.MIN_BRANDS})",
+            "minimum": self.profile.min_brands,
+            "message": f"Found {count} brands (minimum: {self.profile.min_brands})",
         }
 
     def validate_fragrance_relationships(self) -> dict[str, Any]:
@@ -157,15 +264,15 @@ class GraphValidator:
         avg_rels = stats.get("avg_rels", 0)
         min_rels = stats.get("min_rels", 0)
 
-        passed = min_rels >= self.MIN_EDGES_PER_FRAG
+        passed = min_rels >= self.profile.min_edges_per_frag
         return {
             "passed": passed,
             "avg_relationships": round(avg_rels, 2),
             "min_relationships": min_rels,
             "max_relationships": stats.get("max_rels", 0),
-            "minimum": self.MIN_EDGES_PER_FRAG,
+            "minimum": self.profile.min_edges_per_frag,
             "message": f"Average {avg_rels:.1f} relationships per fragrance "
-                       f"(minimum: {self.MIN_EDGES_PER_FRAG})",
+                       f"(minimum: {self.profile.min_edges_per_frag})",
         }
 
     def validate_orphaned_notes(self) -> dict[str, Any]:
@@ -176,7 +283,7 @@ class GraphValidator:
         """
         query = """
         MATCH (n:Note)
-        WHERE NOT (f:Fragrance)-[]->(n)
+        WHERE NOT EXISTS { MATCH (:Fragrance)-[]->(n) }
         RETURN COUNT(n) as orphaned_count
         """
         result = self.neo4j.execute_query(query)
@@ -197,7 +304,7 @@ class GraphValidator:
         """
         query = """
         MATCH (a:Accord)
-        WHERE NOT (f:Fragrance)-[]->(a)
+        WHERE NOT EXISTS { MATCH (:Fragrance)-[]->(a) }
         RETURN COUNT(a) as orphaned_count
         """
         result = self.neo4j.execute_query(query)
@@ -281,17 +388,29 @@ class GraphValidator:
         name_pct = (with_name / total * 100) if total > 0 else 0
         desc_pct = (with_desc / total * 100) if total > 0 else 0
 
-        passed = name_pct >= 95 and desc_pct >= 90
+        passed = (
+            name_pct >= self.profile.min_name_pct
+            and desc_pct >= self.profile.min_desc_pct
+        )
         return {
             "passed": passed,
             "total_fragrances": total,
             "with_names_pct": round(name_pct, 1),
             "with_descriptions_pct": round(desc_pct, 1),
-            "message": f"{name_pct:.0f}% have names, {desc_pct:.0f}% have descriptions",
+            "minimum_name_pct": self.profile.min_name_pct,
+            "minimum_description_pct": self.profile.min_desc_pct,
+            "message": (
+                f"{name_pct:.0f}% have names (min {self.profile.min_name_pct:.0f}%), "
+                f"{desc_pct:.0f}% have descriptions (min {self.profile.min_desc_pct:.0f}%)"
+            ),
         }
 
 
-def validate_graph(neo4j_client: Neo4jClient) -> dict[str, Any]:
+def validate_graph(
+    neo4j_client: Neo4jClient,
+    profile: str | None = None,
+    strict: bool | None = None,
+) -> dict[str, Any]:
     """Standalone function to validate graph.
 
     Args:
@@ -300,19 +419,47 @@ def validate_graph(neo4j_client: Neo4jClient) -> dict[str, Any]:
     Returns:
         Validation results dict
     """
-    validator = GraphValidator(neo4j_client)
+    validator = GraphValidator(neo4j_client, profile=profile, strict=strict)
     return validator.validate_all()
 
 
 if __name__ == "__main__":
+    import argparse
+    import os
     import sys
     import json
     from ml.graph import init_neo4j
 
-    neo4j_uri = sys.argv[1] if len(sys.argv) > 1 else "neo4j://localhost:7687"
-    neo4j_user = sys.argv[2] if len(sys.argv) > 2 else "neo4j"
-    neo4j_password = sys.argv[3] if len(sys.argv) > 3 else "password"
+    parser = argparse.ArgumentParser(description="Validate ScentScape Neo4j graph quality.")
+    parser.add_argument(
+        "neo4j_uri",
+        nargs="?",
+        default=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+    )
+    parser.add_argument(
+        "neo4j_user",
+        nargs="?",
+        default=os.getenv("NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j")),
+    )
+    parser.add_argument(
+        "neo4j_password",
+        nargs="?",
+        default=os.getenv("NEO4J_PASSWORD", "password"),
+    )
+    parser.add_argument(
+        "--profile",
+        default=os.getenv("SCENTSCAPE_VALIDATION_PROFILE", "local"),
+        choices=list(PROFILE_PRESETS.keys()),
+        help="Validation profile for threshold selection.",
+    )
+    parser.add_argument("--strict", dest="strict", action="store_true")
+    parser.add_argument("--no-strict", dest="strict", action="store_false")
+    parser.set_defaults(strict=None)
+    args = parser.parse_args()
 
-    client = init_neo4j(neo4j_uri, neo4j_user, neo4j_password)
-    results = validate_graph(client)
-    print(json.dumps(results, indent=2))
+    client = init_neo4j(args.neo4j_uri, args.neo4j_user, args.neo4j_password)
+    results = validate_graph(client, profile=args.profile, strict=args.strict)
+    summary = summarize_validation_results(results)
+
+    print(json.dumps({"results": results, "summary": summary}, indent=2))
+    sys.exit(0 if summary["failed_check_count"] == 0 else 1)

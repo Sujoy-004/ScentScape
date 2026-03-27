@@ -3,7 +3,10 @@
 T2.6: Async recommendation job processing via Celery.
 """
 
+import json
 import logging
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Optional, List, Dict
 
 from celery import Task
@@ -99,7 +102,7 @@ def recommend_by_text_task(
             "job_id": job_id,
             "status": "completed",
             "fragrances": [],  # Placeholder
-            "generated_at": None,
+            "generated_at": datetime.now(UTC).isoformat(),
         }
     
     except Exception as exc:
@@ -169,7 +172,7 @@ def recommend_by_profile_task(
             "job_id": job_id,
             "status": "completed",
             "fragrances": [],  # Placeholder
-            "generated_at": None,
+            "generated_at": datetime.now(UTC).isoformat(),
         }
     
     except Exception as exc:
@@ -213,4 +216,40 @@ def generate_user_embeddings_task(
     
     except Exception as exc:
         logger.error(f"Embedding generation failed for user {user_id}: {exc}")
+        self.retry(exc=exc)
+
+
+@celery_app.task(
+    base=CallbackTask,
+    bind=True,
+    max_retries=2,
+    default_retry_delay=120,
+    name="app.tasks.rebuild_embeddings",
+)
+def rebuild_embeddings_task(self) -> Dict:
+    """Rebuild text and graph embeddings from the current seed dataset."""
+    try:
+        seed_path = Path(__file__).resolve().parents[3] / "ml" / "data" / "seed_fragrances.json"
+        if not seed_path.exists():
+            raise FileNotFoundError(f"Seed dataset not found: {seed_path}")
+
+        with open(seed_path, "r", encoding="utf-8") as f:
+            fragrances = json.load(f)
+
+        # Lazy imports to avoid forcing ML deps on API startup.
+        from ml.models.text_encoder import TextEncoder
+        from ml.models.graph_sage import GraphEmbedder
+
+        text_encoder = TextEncoder()
+        text_encoder.process_and_upload(fragrances)
+
+        graph_embedder = GraphEmbedder()
+        graph_embedder.generate_and_upload(fragrances)
+
+        return {
+            "status": "completed",
+            "processed": len(fragrances),
+        }
+    except Exception as exc:
+        logger.error(f"Embedding rebuild task failed: {exc}")
         self.retry(exc=exc)

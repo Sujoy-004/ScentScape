@@ -49,7 +49,12 @@ export default function LoginPage() {
           router.push('/recommendations');
         },
         onError: (err: any) => {
-          setError(err.response?.data?.detail || 'Login failed. Please try again.');
+          let errMsg = 'Login failed. Please try again.';
+          const detail = err.response?.data?.detail;
+          if (detail) {
+            errMsg = Array.isArray(detail) ? detail[0].msg : (detail.msg || (typeof detail === 'string' ? detail : JSON.stringify(detail)));
+          }
+          setError(errMsg);
           setIsLoading(false);
         },
       }

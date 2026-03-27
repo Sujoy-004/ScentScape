@@ -1,25 +1,37 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
+import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
 import StringTuneManager from "@/components/StringTuneManager";
+import CookieBanner from "@/components/CookieBanner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "ScentScape - AI Fragrance Discovery",
+  title: "ScentScapeAI — Discover Your Perfect Fragrance",
   description:
-    "Discover personalized fragrances tailored to your unique taste with AI-powered recommendations.",
+    "AI-powered fragrance discovery platform. Find your signature scent through personalized recommendations powered by graph neural networks and natural language understanding.",
+  keywords: "fragrance, perfume, AI recommendations, scent discovery, personalized",
+  authors: [{ name: "ScentScapeAI" }],
+  openGraph: {
+    title: "ScentScapeAI — Discover Your Perfect Fragrance",
+    description: "AI-powered fragrance discovery. Find your signature scent.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -30,17 +42,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${cormorant.variable} ${inter.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col">
-        <Script 
-          src="https://unpkg.com/@fiddle-digital/string-tune@1.1.50/dist/index.js" 
-          strategy="beforeInteractive" 
-        />
+      <body className="min-h-full flex flex-col antialiased">
         <StringTuneManager />
         <Providers>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1" style={{ paddingTop: "64px" }}>
+            {children}
+          </main>
+          <CookieBanner />
         </Providers>
       </body>
     </html>

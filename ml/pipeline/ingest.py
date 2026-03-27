@@ -261,6 +261,7 @@ def ingest_fragrances_from_file(
 
 
 if __name__ == "__main__":
+    import os
     import sys
     from ml.graph import init_neo4j
 
@@ -269,9 +270,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     input_file = Path(sys.argv[1])
-    neo4j_uri = sys.argv[2] if len(sys.argv) > 2 else "neo4j://localhost:7687"
-    neo4j_user = sys.argv[3] if len(sys.argv) > 3 else "neo4j"
-    neo4j_password = sys.argv[4] if len(sys.argv) > 4 else "password"
+    neo4j_uri = sys.argv[2] if len(sys.argv) > 2 else os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    neo4j_user = sys.argv[3] if len(sys.argv) > 3 else os.getenv("NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j"))
+    neo4j_password = sys.argv[4] if len(sys.argv) > 4 else os.getenv("NEO4J_PASSWORD", "password")
 
     # Initialize Neo4j and ingest
     client = init_neo4j(neo4j_uri, neo4j_user, neo4j_password)

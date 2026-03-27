@@ -4,202 +4,375 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAllFragrances, getFragrancesByFamily } from '@/lib/mockData';
 import './fragrances.css';
-import './fragrances.css';
+
+const FAMILIES = ['Floral', 'Woody', 'Citrus', 'Amber', 'Aromatic', 'Fruity', 'Chypré', 'Aquatic'];
+const CONCENTRATIONS = ['All', 'EDP', 'EDT', 'Parfum', 'EDC'];
 
 export default function FragrancesPage() {
   const router = useRouter();
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [sortBy, setSortBy] = useState<'rating' | 'name' | 'match'>('rating');
-  const [filterFamily, setFilterFamily] = useState<string>('');
+  const [filterFamily, setFilterFamily] = useState('');
+  const [filterConc, setFilterConc] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 12;
 
-  // Load fragrances from mock data
   const allFragrances = filterFamily ? getFragrancesByFamily(filterFamily) : getAllFragrances();
-  const isLoading = false;
-  const error = null;
 
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-in');
-        }
-      });
-    });
+  // Enrich with deterministic metrics
+  const enriched = (allFragrances || []).map((f: any, i: number) => ({
+    ...f,
+    rating: [4.8, 4.9, 4.7, 4.8, 4.6, 4.7, 4.5, 4.9][i % 8],
+    match_score: [89, 92, 85, 91, 87, 88, 80, 90][i % 8],
+  }));
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-      const cards = sectionRef.current.querySelectorAll('.fragrance-list-card');
-      cards.forEach((card, index) => {
-        (card as HTMLElement).style.animationDelay = `${index * 0.03}s`;
-        observer.observe(card);
-      });
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  const fragrances = allFragrances || [];
-
-  // Add computed properties for display - use deterministic values to avoid hydration issues
-  const fragrancesWithMetrics = fragrances.map((frag: any, idx: number) => {
-    // Use fragrance index to get deterministic values instead of random
-    const ratingBase = [4.8, 4.9, 4.7, 4.8, 4.6, 4.7, 4.5, 4.9][idx % 8] || 4.5;
-    const matchBase = [89, 92, 85, 91, 87, 88, 80, 90][idx % 8] || 80;
-    
-    return {
-      ...frag,
-      rating: ratingBase.toFixed(1),
-      match_score: matchBase,
-    };
+  // Filter by search
+  const filtered = enriched.filter((f: any) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      f.name?.toLowerCase().includes(q) ||
+      f.brand?.toLowerCase().includes(q) ||
+      f.top_notes?.some((n: string) => n.toLowerCase().includes(q))
+    );
   });
 
-  const sortedFragrances = [...fragrancesWithMetrics].sort((a: any, b: any) => {
-    if (sortBy === 'rating') return parseFloat(b.rating) - parseFloat(a.rating);
+  // Sort
+  const sorted = [...filtered].sort((a: any, b: any) => {
+    if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
     if (sortBy === 'match') return b.match_score - a.match_score;
     return 0;
   });
 
-  const families = ['Floral', 'Woody', 'Citrus', 'Amber', 'Aromatic', 'Fruity', 'Chypré', 'Aquatic'];
+  const totalPages = Math.ceil(sorted.length / PER_PAGE);
+  const paginated = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  if (isLoading) {
-    return (
-      <div className="fragrances-loading">
-        <div className="loading-spinner">
-          <p>Loading fragrances...</p>
-          <div className="spinner"></div>
-        </div>
-      </div>
-    );
-  }
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [filterFamily, searchQuery, sortBy]);
 
-  if (error) {
-    return (
-      <div className="fragrances-error">
-        <h2>Unable to load fragrances</h2>
-        <p>Please try again later.</p>
-        <button
-          className="error-button"
-          onClick={() => router.push('/')}
-        >
-          Back to Home
-        </button>
-      </div>
-    );
-  }
+  // Stagger card animations on mount/page change
+  useEffect(() => {
+    if (!gridRef.current) return;
+    const cards = gridRef.current.querySelectorAll('.frag-list-card');
+    cards.forEach((card, i) => {
+      (card as HTMLElement).style.animationDelay = `${i * 40}ms`;
+      card.classList.add('card-enter');
+    });
+  }, [paginated.length, page]);
 
   return (
-    <div className="fragrances-page">
-      <div className="fragrances-container">
-        {/* Header */}
-        <div className="fragrances-header">
+    <div className="browse-page">
+      {/* ── Page Header ── */}
+      <div className="browse-header">
+        <div className="browse-header-inner container">
           <div>
-            <h1>Explore Our Fragrance Collection</h1>
-            <p>Discover from our curated database of {fragrances.length} fragrances</p>
-          </div>
-          <button
-            className="back-to-home"
-            onClick={() => router.push('/')}
-          >
-            ← Back to Home
-          </button>
-        </div>
-
-        {/* Filters and Sort */}
-        <div className="controls-section">
-          <div className="filter-group">
-            <label>Fragrance Family:</label>
-            <select
-              value={filterFamily}
-              onChange={(e) => setFilterFamily(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Families</option>
-              {families.map((family) => (
-                <option key={family} value={family.toLowerCase()}>
-                  {family}
-                </option>
-              ))}
-            </select>
+            <p className="browse-eyebrow">✦ Collection</p>
+            <h1 className="browse-title">
+              Explore <span className="text-gradient-amber">Fragrances</span>
+            </h1>
+            <p className="browse-subtitle">
+              {sorted.length} fragrances curated for discovery
+            </p>
           </div>
 
-          <div className="sort-group">
-            <label>Sort by:</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'rating' | 'name' | 'match')}
-              className="sort-select"
-            >
-              <option value="rating">Highest Rated</option>
-              <option value="match">Best Match</option>
-              <option value="name">Alphabetical</option>
-            </select>
-          </div>
-
-          <div className="result-count">
-            Showing {sortedFragrances.length} fragrance{sortedFragrances.length !== 1 ? 's' : ''}
+          {/* Search bar */}
+          <div className="browse-search-wrap">
+            <span className="search-icon" aria-hidden="true">⌕</span>
+            <input
+              id="fragrance-search"
+              className="browse-search"
+              type="search"
+              placeholder='Try "smoky vanilla" or "bergamot"…'
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              aria-label="Search fragrances"
+            />
           </div>
         </div>
+      </div>
 
-        {/* Fragrances Grid */}
-        <div className="fragrances-grid" ref={sectionRef}>
-          {sortedFragrances.map((fragrance: any, index: number) => (
-            <div key={index} className="fragrance-list-card">
-              <div className="card-emoji">🧴</div>
-
-              <div className="card-content">
-                <h3 className="card-title">{fragrance.name}</h3>
-                <p className="card-brand">{fragrance.brand}</p>
-
-                {fragrance.top_notes && (
-                  <div className="card-notes">
-                    <p className="notes-label">Top Notes</p>
-                    <div className="notes-pills">
-                      {fragrance.top_notes.slice(0, 2).map((note: string, i: number) => (
-                        <span key={i} className="note-pill">
-                          {note}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="card-metrics">
-                  <div className="metric">
-                    <span className="stars">⭐</span>
-                    <span className="metric-value">{fragrance.rating || 4.5}</span>
-                  </div>
-                  <div className="metric">
-                    <span className="metric-label">Match</span>
-                    <span className="metric-value">{fragrance.match_score || 78}%</span>
-                  </div>
-                </div>
-              </div>
-
+      <div className="browse-layout container">
+        {/* ── Left Sidebar — Filters ── */}
+        <aside className="browse-sidebar" aria-label="Filters">
+          <div className="sidebar-section">
+            <p className="sidebar-label">Family</p>
+            <div className="family-chip-grid">
               <button
-                className="card-button"
-                onClick={() =>
-                  router.push(`/fragrances/${fragrance.id || `frag-${index}`}`)
-                }
+                className={`family-chip ${filterFamily === '' ? 'active' : ''}`}
+                onClick={() => setFilterFamily('')}
               >
-                View
+                All
+              </button>
+              {FAMILIES.map(f => (
+                <button
+                  key={f}
+                  className={`family-chip ${filterFamily === f.toLowerCase() ? 'active' : ''}`}
+                  onClick={() => setFilterFamily(f.toLowerCase())}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="sidebar-section">
+            <p className="sidebar-label">Concentration</p>
+            <div className="family-chip-grid">
+              {CONCENTRATIONS.map(c => (
+                <button
+                  key={c}
+                  className={`family-chip ${filterConc === c ? 'active' : ''}`}
+                  onClick={() => setFilterConc(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="sidebar-section">
+            <p className="sidebar-label">Sort By</p>
+            <div className="sort-btn-group">
+              {(['rating', 'match', 'name'] as const).map(s => (
+                <button
+                  key={s}
+                  className={`sort-btn ${sortBy === s ? 'active' : ''}`}
+                  onClick={() => setSortBy(s)}
+                >
+                  {s === 'rating' ? '★ Highest Rated' : s === 'match' ? '⚡ Best Match' : 'A–Z Name'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main Grid ── */}
+        <main className="browse-main">
+          {/* Toolbar */}
+          <div className="browse-toolbar">
+            <span className="result-count">
+              Showing <strong>{paginated.length}</strong> of {sorted.length}
+            </span>
+            <div className="toolbar-sort-mobile">
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                className="sort-select-mobile"
+                aria-label="Sort fragrances"
+              >
+                <option value="rating">Highest Rated</option>
+                <option value="match">Best Match</option>
+                <option value="name">A–Z Name</option>
+              </select>
+            </div>
+          </div>
+
+          {paginated.length === 0 ? (
+            <div className="empty-state">
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontStyle: 'italic', color: 'var(--color-on-surface-var)' }}>
+                No fragrances found
+              </p>
+              <p style={{ color: 'var(--color-muted)', marginTop: '8px' }}>Try adjusting your search or filters</p>
+              <button className="btn btn-outline" style={{ marginTop: '24px' }} onClick={() => { setFilterFamily(''); setSearchQuery(''); }}>
+                Clear All
               </button>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="fragrances-grid" ref={gridRef}>
+              {paginated.map((frag: any, idx: number) => (
+                <FragCard
+                  key={frag.id || idx}
+                  frag={frag}
+                  index={idx}
+                  onClick={() => router.push(`/fragrances/${frag.id || `frag-${idx}`}`)}
+                />
+              ))}
+            </div>
+          )}
 
-        {sortedFragrances.length === 0 && (
-          <div className="empty-state">
-            <p>No fragrances found. Try adjusting your filters.</p>
-            <button
-              className="error-button"
-              onClick={() => setFilterFamily('')}
-            >
-              Clear Filters
-            </button>
-          </div>
-        )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="page-btn"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                aria-label="Previous page"
+              >
+                ←
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button
+                  key={p}
+                  className={`page-btn ${p === page ? 'active' : ''}`}
+                  onClick={() => setPage(p)}
+                  aria-label={`Page ${p}`}
+                  aria-current={p === page ? 'page' : undefined}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                className="page-btn"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                aria-label="Next page"
+              >
+                →
+              </button>
+            </div>
+          )}
+        </main>
       </div>
     </div>
+  );
+}
+
+/* ── Fragrance Card Component ── */
+function FragCard({ frag, index, onClick }: { frag: any; index: number; onClick: () => void }) {
+  const cardRef = useRef<HTMLElement>(null);
+  const frameRef = useRef<number | null>(null);
+  const cursorFxEnabledRef = useRef(false);
+  const topNotes = frag.top_notes?.slice(0, 3) || [];
+  const midNotes = frag.middle_notes?.slice(0, 2) || [];
+  const baseNotes = frag.base_notes?.slice(0, 2) || [];
+  const accords = frag.accords?.slice(0, 2) || [];
+
+  const updateCursorVars = (x: number, y: number) => {
+    const card = cardRef.current;
+    if (!card) return;
+    card.style.setProperty('--cursor-x', `${x}px`);
+    card.style.setProperty('--cursor-y', `${y}px`);
+  };
+
+  useEffect(() => {
+    cursorFxEnabledRef.current =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(pointer: fine)').matches &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (!cursorFxEnabledRef.current) return;
+
+    const card = cardRef.current;
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+    }
+
+    frameRef.current = requestAnimationFrame(() => {
+      updateCursorVars(x, y);
+      frameRef.current = null;
+    });
+  };
+
+  const handlePointerEnter = () => {
+    if (!cursorFxEnabledRef.current) return;
+
+    const card = cardRef.current;
+    if (!card) return;
+    card.setAttribute('data-cursor-active', '1');
+  };
+
+  const handlePointerLeave = () => {
+    if (!cursorFxEnabledRef.current) return;
+
+    const card = cardRef.current;
+    if (!card) return;
+    card.setAttribute('data-cursor-active', '0');
+    updateCursorVars(card.clientWidth * 0.5, card.clientHeight * 0.5);
+  };
+
+  return (
+    <article
+      ref={cardRef}
+      className="frag-list-card fragrance-card"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onClick()}
+      onPointerMove={handlePointerMove}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      string="magnetic"
+      string-radius="140"
+      string-strength="0.015"
+      aria-label={`${frag.name} by ${frag.brand}`}
+      data-cursor-active="0"
+    >
+      {/* Image area */}
+      <div className="frag-list-image">
+        <div className="bottle-placeholder" aria-hidden="true">
+          <div className="bottle-svg">
+            <div className="bottle-glow" />
+            <span style={{ fontSize: '3.5rem', position: 'relative', zIndex: 1 }}>🧴</span>
+          </div>
+        </div>
+
+        {/* Match badge */}
+        <div className="match-badge" aria-label={`${frag.match_score}% match`}>
+          ⚡ {frag.match_score}%
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div className="frag-list-body">
+        <p className="frag-list-brand">{frag.brand || 'Unknown Brand'}</p>
+        <h3 className="frag-list-name">{frag.name}</h3>
+
+        {/* Note pills */}
+        {topNotes.length > 0 && (
+          <div className="frag-notes-row">
+            {topNotes.map((n: string) => (
+              <span key={n} className="note-pill note-pill-top">{n}</span>
+            ))}
+            {midNotes.map((n: string) => (
+              <span key={n} className="note-pill note-pill-heart">{n}</span>
+            ))}
+            {baseNotes.map((n: string) => (
+              <span key={n} className="note-pill note-pill-base">{n}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Accords */}
+        {accords.length > 0 && (
+          <div className="frag-accords-row">
+            {accords.map((a: string) => (
+              <span key={a} className="accord-badge">{a}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="frag-list-footer">
+          <div className="frag-rating" aria-label={`Rated ${frag.rating}`}>
+            <span className="star">★</span>
+            <span className="frag-rating-value">{frag.rating?.toFixed(1)}</span>
+          </div>
+          <button
+            className="frag-view-btn btn btn-primary"
+            onClick={e => { e.stopPropagation(); onClick(); }}
+            aria-label={`View ${frag.name}`}
+          >
+            View →
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }

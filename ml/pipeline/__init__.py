@@ -1,3 +1,2 @@
 # ML Pipeline Module
-
-Data cleaning, ingestion, and transformation pipeline.
+# Data cleaning, ingestion, and transformation pipeline.

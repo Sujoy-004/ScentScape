@@ -2,16 +2,25 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { getFeaturedFragrances } from '@/lib/mockData';
+
+// Per-fragrance colour identities for the cloud glow
+const BOTTLE_GLOWS = [
+  { glow: 'rgba(139,94,60,0.45)',   accent: '#c87941' },
+  { glow: 'rgba(176,130,30,0.40)',  accent: '#e4c285' },
+  { glow: 'rgba(34,90,34,0.35)',    accent: '#76c576' },
+  { glow: 'rgba(80,60,40,0.45)',    accent: '#a0785a' },
+  { glow: 'rgba(120,30,90,0.35)',   accent: '#e080c0' },
+  { glow: 'rgba(30,70,120,0.35)',   accent: '#60a0d9' },
+];
 
 export function ProductGrid() {
   const router = useRouter();
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
-  // Load actual fragrances from mock data (first 6 featured)
   const featuredFragrances = getFeaturedFragrances(6);
-  
-  // Use static, deterministic data to avoid hydration mismatches
+
   const staticMetrics = [
     { rating: 4.8, reviews: 342, match: 89 },
     { rating: 4.9, reviews: 856, match: 92 },
@@ -20,72 +29,99 @@ export function ProductGrid() {
     { rating: 4.6, reviews: 418, match: 87 },
     { rating: 4.7, reviews: 533, match: 88 },
   ];
-  
+
   const fragrances = featuredFragrances.map((frag: any, idx: number) => ({
     id: frag.id,
     brand: frag.brand,
     name: frag.name,
     notes: frag.top_notes?.slice(0, 3) || [],
+    family: frag.family || 'parfum',
     rating: staticMetrics[idx]?.rating || 4.5,
     reviews: staticMetrics[idx]?.reviews || 300,
-    match: (staticMetrics[idx]?.match || 80) + '%',
+    match: staticMetrics[idx]?.match || 80,
+    ...BOTTLE_GLOWS[idx % BOTTLE_GLOWS.length],
   }));
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-in');
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('cloud-card--visible');
         }
-      });
-    }, { threshold: 0.1 });
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-      const cards = sectionRef.current.querySelectorAll('.fragrance-card');
-      cards.forEach((card) => observer.observe(card));
-    }
-
+      }),
+      { threshold: 0.1 }
+    );
+    gridRef.current?.querySelectorAll('.cloud-card').forEach((c) => observer.observe(c));
     return () => observer.disconnect();
   }, []);
 
   return (
-    <section className="product-grid" ref={sectionRef}>
+    <section className="product-grid-section">
       <div className="product-grid-container">
         <div className="section-header">
-          <h2 className="section-title" string="split" string-repeat="true" string-split="word">Discover Premium Fragrances</h2>
-          <p className="section-subtitle" string="split" string-repeat="true" string-split="word">Handpicked fragrances from the world's finest brands</p>
+          <h2 className="section-title" string="split" string-repeat="true" string-split="word">
+            Discover Premium Fragrances
+          </h2>
+          <p className="section-subtitle" style={{ margin: '0 auto' }}>
+            Handpicked from the world's finest houses
+          </p>
         </div>
 
-        <div className="fragrances-grid">
-          {fragrances.map((fragrance, index) => (
-              <div key={index} className="fragrance-card tilt-card" string="magnetic|glide" string-radius="800" string-strength="0.1" string-glide="0.3">
-              <div className="fragrance-content">
-                <div className="fragrance-brand">{fragrance.brand}</div>
-                <h3 className="fragrance-name">{fragrance.name}</h3>
-                
-                <div className="fragrance-notes">
-                  {fragrance.notes.map((note: string, i: number) => (
-                    <span key={i} className="note-pill">{note}</span>
+        {/* 3-col matrix grid */}
+        <div className="pg-matrix" ref={gridRef}>
+          {fragrances.map((frag, idx) => (
+            <div
+              key={frag.id}
+              className="cloud-card"
+              style={{ '--glow-color': frag.glow, '--accent-color': frag.accent, animationDelay: `${idx * 0.08}s` } as React.CSSProperties}
+              onClick={() => router.push(`/fragrances/${frag.id}`)}
+            >
+              {/* Ambient cloud glow */}
+              <div className="cloud-glow" aria-hidden="true" />
+
+              {/* Perfume bottle image area */}
+              <div className="cloud-bottle-wrap">
+                <div className="cloud-mist" aria-hidden="true" />
+                <div className="cloud-bottle-img">
+                  <Image
+                    src="/perfume-grid.png"
+                    alt={`${frag.name} bottle`}
+                    width={120}
+                    height={140}
+                    style={{ objectFit: 'contain', objectPosition: 'center', filter: `drop-shadow(0 8px 20px ${frag.glow})` }}
+                    priority={idx < 3}
+                  />
+                </div>
+                <div className="cloud-reflection" aria-hidden="true" />
+              </div>
+
+              {/* Match badge */}
+              <div className="cloud-match-badge" style={{ background: `linear-gradient(135deg, ${frag.accent}33, ${frag.accent}22)`, borderColor: `${frag.accent}44` }}>
+                {frag.match}% Match
+              </div>
+
+              {/* Card content */}
+              <div className="cloud-body">
+                <p className="cloud-brand">{frag.brand}</p>
+                <h3 className="cloud-name">{frag.name}</h3>
+                <div className="cloud-notes">
+                  {frag.notes.map((n: string) => (
+                    <span key={n} className="note-pill note-pill-top">{n}</span>
                   ))}
                 </div>
-
-                <div className="fragrance-rating">
-                  <span className="stars">{'⭐'.repeat(Math.floor(fragrance.rating))}</span>
-                  <span className="rating-count">({fragrance.reviews})</span>
+                <div className="cloud-footer">
+                  <div className="cloud-rating">
+                    <span className="cloud-stars">{'★'.repeat(Math.floor(frag.rating))}</span>
+                    <span className="cloud-reviews">({frag.reviews})</span>
+                  </div>
+                  <button
+                    className="cloud-btn"
+                    style={{ borderColor: `${frag.accent}55`, color: frag.accent }}
+                    onClick={(e) => { e.stopPropagation(); router.push(`/fragrances/${frag.id}`); }}
+                  >
+                    View →
+                  </button>
                 </div>
-
-                <div className="fragrance-match">
-                  <span className="match-label">Your Match</span>
-                  <span className="match-score">{fragrance.match}</span>
-                </div>
-
-                <button 
-                  className="fragrance-btn"
-                  onClick={() => router.push(`/fragrances/${fragrance.id}`)}
-                >
-                  View Details
-                </button>
               </div>
             </div>
           ))}

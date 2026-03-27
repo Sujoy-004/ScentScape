@@ -3,13 +3,15 @@
 Provides token generation, verification, and password hashing.
 """
 
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+
+from app.config import settings
 
 
 pwd_context = CryptContext(
@@ -17,10 +19,10 @@ pwd_context = CryptContext(
     deprecated="auto",
 )
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
+SECRET_KEY = settings.jwt_secret_key
+ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 
 
 class TokenPayload(BaseModel):
@@ -60,9 +62,10 @@ def create_access_token(user_id: int, expires_delta: Optional[timedelta] = None)
     
     payload = {
         "sub": str(user_id),
-        "iat": now.isoformat(),
-        "exp": expire.isoformat(),
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
         "type": "access",
+        "jti": str(uuid4()),
     }
     
     encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -87,9 +90,10 @@ def create_refresh_token(user_id: int, expires_delta: Optional[timedelta] = None
     
     payload = {
         "sub": str(user_id),
-        "iat": now.isoformat(),
-        "exp": expire.isoformat(),
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
         "type": "refresh",
+        "jti": str(uuid4()),
     }
     
     encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
