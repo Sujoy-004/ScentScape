@@ -8,13 +8,14 @@ export function FinalCTA() {
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver((entries, obs) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-in');
+          entry.target.classList.add('is-inview');
+          obs.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
 
     if (sectionRef.current) {
       observer.observe(sectionRef.current);
@@ -24,7 +25,7 @@ export function FinalCTA() {
   }, []);
 
   return (
-    <section className="final-cta" ref={sectionRef}>
+    <section className="final-cta scroll-reveal" ref={sectionRef}>
       <div className="final-cta-container">
         <h2 className="cta-title">Ready to Find Your Perfect Scent?</h2>
         <p className="cta-subtitle">Join thousands discovering fragrances they love</p>

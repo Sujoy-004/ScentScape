@@ -5,6 +5,15 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    files: ["**/*.{ts,tsx,js,jsx}"],
+    rules: {
+      // Temporary baseline while we burn down legacy debt incrementally.
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react/no-unescaped-entities": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -12,6 +21,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated and non-production artifacts.
+    "playwright-report/**",
+    "test-results/**",
+    "tests/**",
   ]),
 ]);
 

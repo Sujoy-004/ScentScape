@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { BackgroundAnimation } from './BackgroundAnimation';
 
 /* ── HeroSection ── */
 export function HeroSection() {
@@ -21,7 +20,6 @@ export function HeroSection() {
 
   return (
     <section className="hero-section constellation-bg">
-      <BackgroundAnimation />
       <div className="hero-gradient" aria-hidden="true" />
 
       <div className="hero-container">
@@ -62,9 +60,7 @@ export function HeroSection() {
 
           {/* Subtitle */}
           <p className="hero-subtitle animate-fade-in" style={{ animationDelay: '0.7s' }}>
-            Personalized fragrance recommendations powered by graph AI.
-            <br />
-            Find the signature scent that speaks to your essence.
+            Personalized fragrance recommendations.
           </p>
 
           {/* CTA Buttons — low magnetic sensitivity */}

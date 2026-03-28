@@ -27,12 +27,9 @@ export function BackgroundAnimation() {
   const particlesRef = useRef<Particle[]>([]);
   const bottlesRef = useRef<Bottle[]>([]);
   const timeRef = useRef(0);
-  const scrollOffsetRef = useRef(0);
   const animationIdRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef(0);
   const isFinePointerRef = useRef(false);
-  const isScrollActiveRef = useRef(false);
-  const scrollStopTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -104,7 +101,7 @@ export function BackgroundAnimation() {
     // Initialize particles
     const initParticles = () => {
       particlesRef.current = [];
-      const particleCount = isFinePointerRef.current ? 44 : 80;
+      const particleCount = isFinePointerRef.current ? 24 : 36;
       for (let i = 0; i < particleCount; i++) {
         particlesRef.current.push({
           x: Math.random() * canvas.width,
@@ -122,7 +119,7 @@ export function BackgroundAnimation() {
 
     // Animation loop
     const animate = (timestamp: number) => {
-      const frameBudget = isFinePointerRef.current ? 1000 / 36 : 1000 / 45;
+      const frameBudget = 1000 / 28;
       if (timestamp - lastFrameTimeRef.current < frameBudget) {
         animationIdRef.current = requestAnimationFrame(animate);
         return;
@@ -131,7 +128,6 @@ export function BackgroundAnimation() {
 
       timeRef.current += 1;
       const cycle = timeRef.current % 800; // 8 second cycle at 100fps
-      const reduceDuringScroll = isFinePointerRef.current && isScrollActiveRef.current;
 
       // Clear canvas with light botanical background
       // Dark velvet background — transparent so CSS background shows through
@@ -167,7 +163,7 @@ export function BackgroundAnimation() {
           particle.vy += Math.cos((timeRef.current + index * 9) * 0.02) * drift;
           particle.vx *= 0.98;
           particle.vy *= 0.98;
-        } else if (particle.phase === 'converging' && !reduceDuringScroll) {
+        } else if (particle.phase === 'converging') {
           // Particles converge toward center (matching/recommendation)
           const centerX = canvas.width / 2;
           const centerY = canvas.height / 2;
@@ -181,7 +177,7 @@ export function BackgroundAnimation() {
           }
           particle.vx *= 0.95;
           particle.vy *= 0.95;
-        } else if (!reduceDuringScroll) {
+        } else {
           // Spreading phase (results displaying)
           const centerX = canvas.width / 2;
           const centerY = canvas.height / 2;
@@ -195,10 +191,8 @@ export function BackgroundAnimation() {
           }
           particle.vx *= 0.95;
           particle.vy *= 0.95;
-        } else {
-          particle.vx *= 0.985;
-          particle.vy *= 0.985;
         }
+
 
         // Update position
         particle.x += particle.vx;
@@ -238,7 +232,7 @@ export function BackgroundAnimation() {
       });
 
       // Draw connection lines during converging phase
-      if (!reduceDuringScroll && cycle >= 200 && cycle < 500) {
+      if (cycle >= 200 && cycle < 500) {
         const connectionProgress = (cycle - 200) / 300;
         ctx.strokeStyle = `rgba(244, 187, 146, ${0.15 * connectionProgress})`;
         ctx.lineWidth = 0.5;
@@ -254,7 +248,7 @@ export function BackgroundAnimation() {
       }
 
       // Draw match score indicators during spreading phase
-      if (!reduceDuringScroll && cycle >= 500) {
+      if (cycle >= 500) {
         const spreadProgress = (cycle - 500) / 300;
         ctx.fillStyle = `rgba(244, 187, 146, ${0.6 * (1 - spreadProgress)})`;
         ctx.font = '14px Inter';
@@ -272,34 +266,13 @@ export function BackgroundAnimation() {
 
     animationIdRef.current = requestAnimationFrame(animate);
 
-    // Apply parallax directly to the canvas to avoid React re-renders on scroll.
-    const handleScroll = () => {
-      isScrollActiveRef.current = true;
-      if (scrollStopTimerRef.current !== null) {
-        clearTimeout(scrollStopTimerRef.current);
-      }
-      scrollStopTimerRef.current = window.setTimeout(() => {
-        isScrollActiveRef.current = false;
-      }, 120);
-
-      scrollOffsetRef.current = window.scrollY * 0.32;
-      canvas.style.transform = `translate3d(0, ${scrollOffsetRef.current}px, 0)`;
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
     // Handle resize
     window.addEventListener('resize', resizeCanvas);
-
-    handleScroll();
 
     return () => {
       if (animationIdRef.current !== null) {
         cancelAnimationFrame(animationIdRef.current);
       }
-      if (scrollStopTimerRef.current !== null) {
-        clearTimeout(scrollStopTimerRef.current);
-      }
-      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', resizeCanvas);
     };
   }, []);

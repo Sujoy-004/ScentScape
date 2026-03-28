@@ -5,7 +5,52 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRegister } from '@/lib/hooks';
 import { useAppStore } from '@/stores/app-store';
+import { api } from '@/lib/api';
 import '../auth.css';
+
+type RegisterSuccessPayload = {
+  access_token?: string;
+  user_id?: string;
+};
+
+type RegisterErrorPayload = {
+  response?: {
+    data?: {
+      detail?: unknown;
+    };
+  };
+};
+
+function getRegisterErrorMessage(err: unknown): string {
+  const parsed = err as RegisterErrorPayload;
+  const detail = parsed.response?.data?.detail;
+  if (!detail) {
+    return 'Registration failed. Please try again.';
+  }
+
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0] as { msg?: string } | string;
+    if (typeof first === 'string' && first.trim()) {
+      return first;
+    }
+    if (typeof first === 'object' && typeof first?.msg === 'string' && first.msg.trim()) {
+      return first.msg;
+    }
+  }
+
+  if (typeof detail === 'object' && detail !== null && 'msg' in detail) {
+    const obj = detail as { msg?: string };
+    if (typeof obj.msg === 'string' && obj.msg.trim()) {
+      return obj.msg;
+    }
+  }
+
+  return JSON.stringify(detail);
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,7 +65,7 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const registerMutation = useRegister();
-  const { setAuthToken, setUserId } = useAppStore();
+  const { setAuthToken, setUserId, clearQuizResponses } = useAppStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,18 +107,35 @@ export default function RegisterPage() {
     registerMutation.mutate(
       { email, password, full_name: name },
       {
-        onSuccess: (data: any) => {
+        onSuccess: async (data: RegisterSuccessPayload) => {
+          if (!data?.access_token) {
+            setError('Registration failed. Invalid server response.');
+            return;
+          }
+
           setAuthToken(data.access_token);
           if (data.user_id) setUserId(data.user_id);
-          router.push('/onboarding/quiz');
-        },
-        onError: (err: any) => {
-          let errMsg = 'Registration failed. Please try again.';
-          const detail = err.response?.data?.detail;
-          if (detail) {
-            errMsg = Array.isArray(detail) ? detail[0].msg : (detail.msg || (typeof detail === 'string' ? detail : JSON.stringify(detail)));
+
+          const store = useAppStore.getState();
+          if (store.quizResponses && store.quizResponses.length > 0) {
+            const syncResults = await Promise.allSettled(
+              store.quizResponses.map((response) =>
+                api.submitRating(response.fragrance_id, response.rating)
+              )
+            );
+            const syncWarning = syncResults.some((result) => result.status === 'rejected');
+            if (!syncWarning) {
+              clearQuizResponses();
+            }
+            router.push(syncWarning ? '/recommendations?sync=partial' : '/recommendations');
+          } else {
+            router.push('/onboarding/quiz');
           }
-          setError(errMsg);
+        },
+        onError: (err: unknown) => {
+          setError(getRegisterErrorMessage(err));
+        },
+        onSettled: () => {
           setIsLoading(false);
         },
       }

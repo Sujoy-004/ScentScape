@@ -6,13 +6,14 @@ export function SocialProof() {
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver((entries, obs) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-in');
+          entry.target.classList.add('is-inview');
+          obs.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
 
     if (sectionRef.current) {
       observer.observe(sectionRef.current);
@@ -45,7 +46,7 @@ export function SocialProof() {
   ];
 
   return (
-    <section className="social-proof" ref={sectionRef}>
+    <section className="social-proof scroll-reveal" ref={sectionRef}>
       <div className="social-proof-container">
         <div className="section-header">
           <h2 className="section-title">Loved by Fragrance Enthusiasts</h2>
@@ -68,7 +69,7 @@ export function SocialProof() {
 
         <div className="testimonials-grid">
           {testimonials.map((testimonial, index) => (
-            <div key={index} className="testimonial">
+            <div key={index} className="testimonial scroll-reveal">
               <div className="testimonial-rating">
                 {'⭐'.repeat(testimonial.rating)}
               </div>

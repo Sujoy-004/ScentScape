@@ -36,7 +36,7 @@ export default function FamiliesPage() {
         {/* Header */}
         <div className="families-header">
           <h1>Fragrance Families</h1>
-          <p>Explore fragrances by their signature characteristics and scent profiles</p>
+          <p>Find your scent profile across these carefully curated families</p>
         </div>
 
         {/* Families Grid */}

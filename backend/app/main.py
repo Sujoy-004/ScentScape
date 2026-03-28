@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db, close_db
-from app.routers import auth, fragrances, users, recommendations
+from app.routers import auth, fragrances, users, recommendations, quiz
 from app.sentry_config import init_sentry
 
 
@@ -68,6 +68,7 @@ app.include_router(auth.router)
 app.include_router(fragrances.router)
 app.include_router(users.router)
 app.include_router(recommendations.router)
+app.include_router(quiz.router)
 
 
 @app.get("/health", tags=["system"])

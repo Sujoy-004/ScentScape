@@ -6,13 +6,14 @@ export function HowItWorks() {
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver((entries, obs) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-in');
+          entry.target.classList.add('is-inview');
+          obs.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
 
     if (sectionRef.current) {
       observer.observe(sectionRef.current);
@@ -24,15 +25,15 @@ export function HowItWorks() {
   }, []);
 
   return (
-    <section className="how-it-works" ref={sectionRef}>
+    <section className="how-it-works scroll-reveal" ref={sectionRef}>
       <div className="how-it-works-container">
-        <div className="section-header">
+        <div className="how-it-works-header">
           <h2 className="section-title">How It Works</h2>
           <p className="section-subtitle">Discover your perfect fragrance in three simple steps</p>
         </div>
 
         <div className="steps-grid">
-          <div className="step-card step-1" style={{ animationDelay: "0.2s" }} string="reveal">
+          <div className="step-card step-1 scroll-reveal" style={{ animationDelay: "0.2s" }} string="reveal">
             <div className="step-number">1</div>
             <div className="step-emoji">⭐</div>
             <h3 className="step-heading" string="split" string-split="char">Rate Your Favorites</h3>
@@ -42,7 +43,7 @@ export function HowItWorks() {
             <div className="step-visual">🎯</div>
           </div>
 
-          <div className="step-card step-2" style={{ animationDelay: "0.4s" }} string="reveal">
+          <div className="step-card step-2 scroll-reveal" style={{ animationDelay: "0.4s" }} string="reveal">
             <div className="step-number">2</div>
             <div className="step-emoji">🧠</div>
             <h3 className="step-heading" string="split" string-split="char">Get AI-Matched</h3>
@@ -52,7 +53,7 @@ export function HowItWorks() {
             <div className="step-visual">🔄</div>
           </div>
 
-          <div className="step-card step-3" style={{ animationDelay: "0.6s" }} string="reveal">
+          <div className="step-card step-3 scroll-reveal" style={{ animationDelay: "0.6s" }} string="reveal">
             <div className="step-number">3</div>
             <div className="step-emoji">✨</div>
             <h3 className="step-heading" string="split" string-split="char">Explore & Discover</h3>

@@ -195,7 +195,7 @@ html, body, * {
 html {
   font-size: 16px;
   line-height: 1.5;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -543,13 +543,14 @@ h1, h2, h3, h4, h5, h6 {
 /* Split text — chars/words start hidden below */
 .-s-char, .-s-word {
   display: inline-flex;
-  will-change: transform, opacity;
+  will-change: auto;
   transform: translate3d(0, 120%, 0);
   opacity: 0;
 }
 
 .-splitted.-inview .-s-char,
 .-splitted.-inview .-s-word {
+  will-change: transform, opacity;
   transform: translate3d(0, 0, 0);
   opacity: 1;
   transition:
@@ -594,6 +595,20 @@ body.is-scrolling .fragrance-card,
 body.is-scrolling .family-card {
   transform: none !important;
   transition: none !important;
+}
+
+/* Backdrop blur is expensive on large surfaces; disable while actively scrolling. */
+body.is-scrolling .glass-card,
+body.is-scrolling .family-card,
+body.is-scrolling .fragrance-card,
+body.is-scrolling .frag-list-card,
+body.is-scrolling .testimonial,
+body.is-scrolling .step-card,
+body.is-scrolling .indicator,
+body.is-scrolling .stat-card,
+body.is-scrolling .cloud-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Spotlight tracking spotlight */
@@ -763,6 +778,35 @@ body.is-scrolling .family-card {
 .animate-shimmer   { animation: shimmer 3s ease infinite; }
 .animate-pulse-amber { animation: pulse-amber 2s ease infinite; }
 
+/* Reversible scroll reveal for sections/cards that should hide again on scroll up. */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.45s var(--ease-premium),
+    transform 0.55s var(--ease-premium);
+  will-change: auto;
+}
+
+.scroll-reveal.is-inview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* During active scroll, avoid extra reveal transitions to reduce jank. */
+body.is-scrolling .scroll-reveal {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .scroll-reveal.is-inview {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* =====================================================
    RESPONSIVE
    ===================================================== */
@@ -777,3 +821,55 @@ body.is-scrolling .family-card {
 @media (max-width: 480px) {
   :root          { font-size: 14px; }
 }
+
+/* =====================================================
+   STRINGTUNE - TUTORIAL 14 EXPERIMENTAL ANIMATION
+   ===================================================== */
+.cloud-bottle-img {
+  filter: saturate(100%) contrast(100%);
+  transition: filter 1.5s cubic-bezier(0.35, 0.35, 0, 1);
+}
+
+.cloud-card:hover .cloud-bottle-img {
+  filter: saturate(0%) contrast(50%);
+  transition: filter 0s cubic-bezier(0.35, 0.35, 0, 1);
+}
+
+/* =====================================================
+   PLAIN MODE (Global Motion Off)
+   ===================================================== */
+
+*,
+*::before,
+*::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+  will-change: auto !important;
+}
+
+* {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.scroll-reveal,
+.scroll-reveal.is-inview,
+.cascade-word,
+.-s-char,
+.-s-word,
+.cloud-card,
+.cloud-card--visible,
+.frag-list-card,
+.family-card,
+.testimonial,
+.step-card {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.fragrance-card::before,
+.frag-list-card::before {
+  display: none !important;
+}
+

@@ -6,8 +6,7 @@ notes (top/middle/base), concentration, gender, description, and review count.
 Respects robots.txt and implements responsible crawling practices.
 """
 
-import logging
-from typing import Generator, Optional
+from typing import Any, Generator, Optional
 from urllib.parse import urljoin
 
 import scrapy
@@ -47,7 +46,6 @@ class FragranticaSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger(self.__class__.__name__)
         self.item_count = 0
         self.error_count = 0
 
@@ -84,7 +82,7 @@ class FragranticaSpider(scrapy.Spider):
                 meta={"dont_cache": True},
             )
 
-    def parse_fragrance(self, response) -> Optional[dict]:
+    def parse_fragrance(self, response) -> Generator[dict[str, Any], None, None]:
         """Parse individual fragrance page and extract data."""
         try:
             fragrance_id = self._extract_fragrance_id(response.url)

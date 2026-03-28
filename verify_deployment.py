@@ -14,7 +14,9 @@ Prerequisites:
 
 import sys
 import asyncio
+import subprocess
 from typing import Dict
+from urllib.parse import urlparse
 
 # Import with error handling for optional dependencies
 missing_packages = []
@@ -33,6 +35,11 @@ try:
     import asyncpg
 except ImportError:
     missing_packages.append('asyncpg')
+
+try:
+    from celery import Celery
+except ImportError:
+    missing_packages.append('celery')
 
 try:
     from neo4j import GraphDatabase
@@ -117,30 +124,72 @@ class DeploymentVerifier:
             print(f"❌ Backend root error: {e}")
             return False
 
-    def test_postgresql(self, connection_string: str) -> bool:
-        """Test PostgreSQL connection."""
-        print("🔍 Testing PostgreSQL...")
+    def _test_postgresql_direct(self, connection_string: str) -> tuple[bool, str | None]:
+        """Test PostgreSQL connectivity directly from the host runtime."""
         try:
             # asyncpg.connect expects a native PostgreSQL URI, not SQLAlchemy dialect prefixes.
             if connection_string.startswith("postgresql+asyncpg://"):
                 connection_string = connection_string.replace("postgresql+asyncpg://", "postgresql://", 1)
 
-            async def test_conn():
+            async def test_conn() -> bool:
                 conn = await asyncpg.connect(connection_string)
                 result = await conn.fetchval("SELECT 1")
                 await conn.close()
                 return result == 1
-            
+
             result = asyncio.run(test_conn())
-            if result:
-                print("✅ PostgreSQL: Connected")
-                return True
-            else:
-                print("❌ PostgreSQL: Query failed")
-                return False
+            return (result, None if result else "query did not return 1")
         except Exception as e:
-            print(f"❌ PostgreSQL error: {e}")
-            return False
+            return (False, str(e))
+
+    def _test_postgresql_in_container(self, connection_string: str, container_name: str) -> tuple[bool, str | None]:
+        """Fallback DB probe executed inside the Postgres container.
+
+        This avoids false negatives when host localhost:5432 is occupied by a non-docker
+        PostgreSQL service while the application itself relies on the containerized DB.
+        """
+        try:
+            parsed = urlparse(connection_string)
+            username = parsed.username or "scentscape"
+            password = parsed.password or ""
+            database = (parsed.path or "/scentscape").lstrip("/") or "scentscape"
+
+            cmd = [
+                "docker",
+                "exec",
+                container_name,
+                "sh",
+                "-lc",
+                f"PGPASSWORD='{password}' psql -h localhost -U '{username}' -d '{database}' -tAc 'SELECT 1'",
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False)
+            if proc.returncode == 0 and proc.stdout.strip() == "1":
+                return (True, None)
+
+            message = proc.stderr.strip() or proc.stdout.strip() or "container probe failed"
+            return (False, message)
+        except Exception as e:
+            return (False, str(e))
+
+    def test_postgresql(self, connection_string: str, container_name: str) -> bool:
+        """Test PostgreSQL connection."""
+        print("🔍 Testing PostgreSQL...")
+        direct_ok, direct_error = self._test_postgresql_direct(connection_string)
+        if direct_ok:
+            print("✅ PostgreSQL: Connected")
+            return True
+
+        container_ok, container_error = self._test_postgresql_in_container(connection_string, container_name)
+        if container_ok:
+            print("✅ PostgreSQL: Connected (container fallback)")
+            if direct_error:
+                print(f"   ℹ️  Direct host check failed: {direct_error}")
+            return True
+
+        print(f"❌ PostgreSQL error: {direct_error or 'direct connection failed'}")
+        if container_error:
+            print(f"   ↳ Container fallback error: {container_error}")
+        return False
 
     def test_neo4j(self, uri: str, username: str, password: str) -> bool:
         """Test Neo4j connection."""
@@ -175,6 +224,24 @@ class DeploymentVerifier:
                 return False
         except Exception as e:
             print(f"❌ Redis error: {e}")
+            return False
+
+    def test_celery_worker(self, broker_url: str) -> bool:
+        """Test Celery worker reachability using inspect ping."""
+        print("🔍 Testing Celery worker...")
+        try:
+            probe = Celery("deploy_verify", broker=broker_url, backend=broker_url)
+            inspector = probe.control.inspect(timeout=5)
+            response = inspector.ping() if inspector else None
+            if response:
+                workers = ", ".join(response.keys())
+                print(f"✅ Celery worker: Reachable ({workers})")
+                return True
+
+            print("❌ Celery worker: No active worker responded to ping")
+            return False
+        except Exception as e:
+            print(f"❌ Celery worker error: {e}")
             return False
 
     def test_pinecone(self, api_key: str, environment: str, index_name: str) -> bool:
@@ -281,6 +348,7 @@ def main():
     neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
     neo4j_password = os.getenv("NEO4J_PASSWORD", "password")
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    postgres_container = os.getenv("POSTGRES_CONTAINER_NAME", "scentscape-postgres")
     pinecone_api_key = os.getenv("PINECONE_API_KEY", "")
     pinecone_env = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
     pinecone_index = os.getenv("PINECONE_INDEX_NAME", "scentscape-fragrances")
@@ -300,9 +368,10 @@ def main():
     verifier.results["Frontend Health"] = verifier.test_frontend_health(frontend_url)
     verifier.results["Backend Health"] = verifier.test_backend_health(backend_url)
     verifier.results["Backend Root"] = verifier.test_backend_root(backend_url)
-    verifier.results["PostgreSQL"] = verifier.test_postgresql(database_url)
+    verifier.results["PostgreSQL"] = verifier.test_postgresql(database_url, postgres_container)
     verifier.results["Neo4j"] = verifier.test_neo4j(neo4j_uri, neo4j_username, neo4j_password)
     verifier.results["Redis"] = verifier.test_redis(redis_url)
+    verifier.results["Celery Worker"] = verifier.test_celery_worker(redis_url)
     verifier.results["Pinecone"] = verifier.test_pinecone(pinecone_api_key, pinecone_env, pinecone_index)
     verifier.results["Sentry DSN"] = verifier.test_sentry(sentry_dsn)
     

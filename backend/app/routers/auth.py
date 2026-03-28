@@ -32,6 +32,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _utc_now_naive() -> datetime:
+    # DB columns are TIMESTAMP WITHOUT TIME ZONE.
+    return datetime.utcnow()
+
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserRegister,
@@ -79,7 +84,7 @@ async def register(
     refresh_token_obj = RefreshToken(
         user_id=user_id,
         token=refresh_token,
-        expires_at=datetime.utcnow() + timedelta(days=7),
+        expires_at=_utc_now_naive() + timedelta(days=7),
     )
     session.add(refresh_token_obj)
     
@@ -141,7 +146,7 @@ async def login(
     refresh_token_obj = RefreshToken(
         user_id=user.id,
         token=refresh_token,
-        expires_at=datetime.utcnow() + timedelta(days=7),
+        expires_at=_utc_now_naive() + timedelta(days=7),
     )
     session.add(refresh_token_obj)
     await session.commit()
@@ -177,7 +182,7 @@ async def refresh_token(
     stmt = select(RefreshToken).where(
         RefreshToken.token == request.refresh_token,
         RefreshToken.revoked_at == None,
-        RefreshToken.expires_at > datetime.utcnow(),
+        RefreshToken.expires_at > _utc_now_naive(),
     )
     result = await session.execute(stmt)
     token_obj = result.scalar_one_or_none()
@@ -226,7 +231,7 @@ async def logout(
     tokens = result.scalars().all()
     
     for token in tokens:
-        token.revoked_at = datetime.utcnow()
+        token.revoked_at = _utc_now_naive()
     
     await session.commit()
     logger.info(f"User logged out: {user_id}")
@@ -261,7 +266,7 @@ async def get_current_user(
             detail="User not found",
         )
     
-    return UserProfile.from_orm(user)
+    return UserProfile.model_validate(user)
 
 
 

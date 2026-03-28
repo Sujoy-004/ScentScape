@@ -3,8 +3,15 @@
    ===================================================== */
 
 .quiz-page {
+  --quiz-page-from: #251d19;
+  --quiz-page-to: #161310;
+  --quiz-beam: rgba(255, 231, 205, 0.2);
+  --quiz-ink: #f3e3d8;
   min-height: 100dvh;
-  background: var(--surface-base);
+  background:
+    radial-gradient(circle at 16% 20%, var(--quiz-soft), transparent 42%),
+    radial-gradient(circle at 84% 80%, var(--quiz-soft-secondary), transparent 45%),
+    linear-gradient(150deg, var(--quiz-page-from), var(--quiz-page-to));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,15 +24,25 @@
 .quiz-page::before {
   content: '';
   position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(139, 94, 60, 0.1) 0%, transparent 65%);
-  border-radius: 50%;
-  top: -150px;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 8% 12%;
+  background:
+    linear-gradient(120deg, transparent 15%, var(--quiz-beam) 48%, transparent 78%),
+    linear-gradient(205deg, transparent 20%, rgba(255, 255, 255, 0.08) 48%, transparent 72%);
+  filter: blur(30px);
   pointer-events: none;
-  animation: float 10s ease-in-out infinite;
+  opacity: 0.45;
+}
+
+.quiz-page::after {
+  content: '';
+  position: absolute;
+  width: min(70vw, 420px);
+  height: min(70vw, 420px);
+  border-radius: 999px;
+  right: -120px;
+  bottom: -140px;
+  background: radial-gradient(circle, var(--quiz-glow), transparent 68%);
+  pointer-events: none;
 }
 
 .quiz-loading {
@@ -109,16 +126,36 @@
   background:
     radial-gradient(circle at 12% 16%, var(--quiz-soft), transparent 58%),
     radial-gradient(circle at 88% 82%, var(--quiz-soft-secondary), transparent 52%),
-    rgba(35, 31, 28, 0.82);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+    rgba(35, 31, 28, 0.58);
+  backdrop-filter: blur(26px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(120%) !important;
   border: 1px solid var(--quiz-border);
   border-radius: var(--radius-2xl);
   padding: var(--space-10);
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.42),
     0 0 42px var(--quiz-glow);
-  animation: fade-up 0.6s var(--ease-premium) both;
+  position: relative;
+  overflow: hidden;
+}
+
+.quiz-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(128deg, rgba(255, 255, 255, 0.18), transparent 42%);
+  pointer-events: none;
+}
+
+.quiz-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 44%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--quiz-border), transparent);
+  pointer-events: none;
 }
 
 /* ── Fragrance Preview ── */
@@ -127,6 +164,26 @@
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-8);
   border-bottom: 1px solid rgba(244, 187, 146, 0.07);
+  position: relative;
+  z-index: 1;
+}
+
+.fragrance-preview::before {
+  content: 'VIBE';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-full);
+  border: 1px solid color-mix(in srgb, var(--quiz-border) 85%, white 15%);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--quiz-ink);
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .fragrance-emoji {
@@ -142,7 +199,7 @@
   font-style: italic;
   font-size: clamp(1.5rem, 4vw, 2.2rem);
   font-weight: 400;
-  color: var(--color-on-surface);
+  color: var(--quiz-ink);
   margin: 0 0 var(--space-2) 0;
   letter-spacing: -0.01em;
 }
@@ -150,7 +207,7 @@
 .fragrance-brand {
   font-family: var(--font-body);
   font-size: 0.7rem;
-  color: var(--quiz-accent);
+  color: var(--quiz-ink);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 700;
@@ -164,7 +221,7 @@
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-on-surface-var);
+  color: color-mix(in srgb, var(--quiz-ink) 72%, #c8b4a5 28%);
   margin-bottom: var(--space-4);
   text-align: center;
 }
@@ -190,8 +247,8 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(244, 187, 146, 0.22);
-  background: rgba(21, 18, 15, 0.75);
+  border: 1px solid color-mix(in srgb, var(--quiz-border) 80%, white 20%);
+  background: rgba(20, 17, 15, 0.62);
 }
 
 .rating-input {
@@ -201,7 +258,7 @@
   outline: none;
   font-family: var(--font-display);
   font-size: clamp(1.6rem, 5vw, 2.2rem);
-  color: var(--color-on-surface);
+  color: var(--quiz-ink);
   font-style: italic;
 }
 
@@ -218,7 +275,7 @@
 .rating-suffix {
   font-family: var(--font-body);
   font-size: 0.95rem;
-  color: var(--color-muted);
+  color: color-mix(in srgb, var(--quiz-ink) 68%, #999 32%);
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -226,8 +283,44 @@
 .rating-help {
   font-family: var(--font-body);
   font-size: 0.75rem;
-  color: var(--color-muted);
+  color: color-mix(in srgb, var(--quiz-ink) 64%, #8f8f8f 36%);
   margin: 0;
+}
+
+.rating-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  appearance: none;
+  background: linear-gradient(90deg, var(--quiz-border), var(--quiz-accent));
+  outline: none;
+}
+
+.rating-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--quiz-ink);
+  border: 2px solid var(--quiz-accent);
+}
+
+.rating-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--quiz-ink);
+  border: 2px solid var(--quiz-accent);
+}
+
+.rating-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--quiz-ink) 70%, #9f9f9f 30%);
+  text-transform: uppercase;
 }
 
 .rating-quick-picks {
@@ -238,9 +331,9 @@
 }
 
 .rating-chip {
-  border: 1px solid rgba(244, 187, 146, 0.18);
-  background: rgba(33, 29, 26, 0.82);
-  color: var(--color-on-surface-var);
+  border: 1px solid color-mix(in srgb, var(--quiz-border) 78%, white 22%);
+  background: rgba(33, 29, 26, 0.6);
+  color: color-mix(in srgb, var(--quiz-ink) 85%, #b9b9b9 15%);
   border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: 0.78rem;
@@ -257,7 +350,7 @@
 }
 
 .rating-chip.active {
-  background: linear-gradient(135deg, var(--quiz-accent), var(--color-primary-container));
+  background: linear-gradient(135deg, var(--quiz-accent), color-mix(in srgb, var(--quiz-accent) 64%, #5e3e2c 36%));
   border-color: transparent;
   color: #2d1a08;
 }
@@ -285,11 +378,13 @@
 
 /* ── Notes Preview ── */
 .quiz-notes-preview {
-  background: rgba(22, 19, 16, 0.5);
-  border: 1px solid rgba(244, 187, 146, 0.06);
+  background: rgba(22, 19, 16, 0.38);
+  border: 1px solid color-mix(in srgb, var(--quiz-border) 74%, transparent);
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-8);
+  position: relative;
+  z-index: 1;
 }
 
 .notes-title {
@@ -354,9 +449,9 @@
 }
 
 .quiz-btn-next-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-container));
+  background: linear-gradient(135deg, var(--quiz-accent), color-mix(in srgb, var(--quiz-accent) 62%, #4b2e1f 38%));
   color: var(--color-on-primary);
-  box-shadow: 0 4px 16px rgba(244, 187, 146, 0.22);
+  box-shadow: 0 4px 16px var(--quiz-glow);
 }
 
 .quiz-btn-next-primary:hover:not(:disabled) {

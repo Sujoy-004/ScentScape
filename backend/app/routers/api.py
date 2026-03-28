@@ -12,6 +12,7 @@ router = APIRouter(tags=["api"])
 # Placeholder engine (will be created in main.py)
 # Placeholder - DB will be injected from main.py
 from typing import Any
+from datetime import UTC, datetime
 
 def get_db():
     # Placeholder DB dependency - configure in main.py
@@ -21,7 +22,6 @@ def get_db():
 async def get_fragrances(limit: int = 10) -> list[FragranceSearchResult]:
     """Placeholder endpoint for fragrance search."""
     # TODO: Implement Neo4j query
-    from datetime import datetime
     return [
         FragranceSearchResult(
             id=f"f{i}",
@@ -35,16 +35,15 @@ async def get_fragrances(limit: int = 10) -> list[FragranceSearchResult]:
 @router.post("/recommend/text", response_model=RecommendationResult)
 async def text_recommendation(request: TextRecommendationRequest):
     """Text-based recommendation placeholder."""
-    from datetime import datetime
     # TODO: Implement LLM + GNN recommendation
     return RecommendationResult(
         job_id="demo-job",
         fragrances=[FragranceSearchResult(id="f1", name="Recommended", brand="Demo")],
-        generated_at=datetime.utcnow()
+        generated_at=datetime.now(UTC)
     )
 
 @router.get("/health", response_model=HealthCheck)
 async def api_health():
-    return HealthCheck(status="healthy", version="0.1.0", timestamp=datetime.utcnow())
+    return HealthCheck(status="healthy", version="0.1.0", timestamp=datetime.now(UTC))
 
 

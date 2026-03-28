@@ -15,7 +15,6 @@ const publicRoutes = [
 // Define routes that require authentication
 const protectedRoutes = [
   '/profile',
-  '/onboarding/quiz',
   '/recommendations',
   '/user',
 ];

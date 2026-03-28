@@ -44,12 +44,13 @@ export function ProductGrid() {
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      (entries) => entries.forEach((e) => {
+      (entries, obs) => entries.forEach((e) => {
         if (e.isIntersecting) {
           e.target.classList.add('cloud-card--visible');
+          obs.unobserve(e.target);
         }
       }),
-      { threshold: 0.1 }
+      { threshold: 0.12, rootMargin: '0px 0px -10% 0px' }
     );
     gridRef.current?.querySelectorAll('.cloud-card').forEach((c) => observer.observe(c));
     return () => observer.disconnect();

@@ -12,7 +12,7 @@ An intelligent fragrance recommendation platform combining knowledge graphs, gra
 ### Local Development
 
 ```bash
-# Start all services (PostgreSQL, Neo4j, Redis, Backend)
+# Start all services (PostgreSQL, Neo4j, Redis, Backend API, Celery worker)
 make up
 
 # Seed test data

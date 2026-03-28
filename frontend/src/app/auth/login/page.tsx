@@ -5,18 +5,91 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLogin } from '@/lib/hooks';
 import { useAppStore } from '@/stores/app-store';
+import { api } from '@/lib/api';
 import '../auth.css';
+
+type LoginSuccessPayload = {
+  access_token?: string;
+  user_id?: string;
+};
+
+type LoginErrorPayload = {
+  response?: {
+    data?: {
+      detail?: unknown;
+    };
+    status?: number;
+  };
+  code?: string;
+};
+
+function getLoginErrorMessage(err: unknown): string {
+  const parsed = err as LoginErrorPayload;
+  const detail = parsed?.response?.data?.detail;
+
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0];
+    if (typeof first === 'string' && first.trim()) {
+      return first;
+    }
+    if (typeof first?.msg === 'string' && first.msg.trim()) {
+      return first.msg;
+    }
+  }
+
+  if (typeof detail === 'object' && detail !== null && 'msg' in detail) {
+    const obj = detail as { msg?: string };
+    if (typeof obj.msg === 'string' && obj.msg.trim()) {
+      return obj.msg;
+    }
+  }
+
+  const status = parsed?.response?.status;
+  if (status === 401) {
+    return 'Invalid email or password';
+  }
+  if (status === 403) {
+    return 'User account is inactive';
+  }
+  if (parsed?.code === 'ERR_NETWORK') {
+    return 'Cannot reach server. Please try again.';
+  }
+
+  return 'Login failed. Please try again.';
+}
+
+function getLoginErrorFromQuery(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const supported = new Set(['error', 'message', 'next']);
+  const keys = Array.from(searchParams.keys());
+  const unknownKeys = keys.filter((key) => !supported.has(key));
+
+  if (unknownKeys.length > 0) {
+    return 'Invalid login link. Please sign in with your email and password.';
+  }
+
+  const urlError = searchParams.get('error') || searchParams.get('message');
+  return urlError && urlError.trim() ? urlError : '';
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => getLoginErrorFromQuery());
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const loginMutation = useLogin();
-  const { setAuthToken, setUserId } = useAppStore();
+  const { setAuthToken, setUserId, clearQuizResponses } = useAppStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,18 +116,35 @@ export default function LoginPage() {
     loginMutation.mutate(
       { email, password },
       {
-        onSuccess: (data: any) => {
+        onSuccess: async (data: LoginSuccessPayload) => {
+          if (!data?.access_token) {
+            setError('Login failed. Invalid server response.');
+            return;
+          }
+
           setAuthToken(data.access_token);
           if (data.user_id) setUserId(data.user_id);
-          router.push('/recommendations');
-        },
-        onError: (err: any) => {
-          let errMsg = 'Login failed. Please try again.';
-          const detail = err.response?.data?.detail;
-          if (detail) {
-            errMsg = Array.isArray(detail) ? detail[0].msg : (detail.msg || (typeof detail === 'string' ? detail : JSON.stringify(detail)));
+
+          let syncWarning = false;
+          const store = useAppStore.getState();
+          if (store.quizResponses && store.quizResponses.length > 0) {
+            const syncResults = await Promise.allSettled(
+              store.quizResponses.map((response) =>
+                api.submitRating(response.fragrance_id, response.rating)
+              )
+            );
+            syncWarning = syncResults.some((result) => result.status === 'rejected');
+            if (!syncWarning) {
+              clearQuizResponses();
+            }
           }
-          setError(errMsg);
+
+          router.push(syncWarning ? '/recommendations?sync=partial' : '/recommendations');
+        },
+        onError: (err: unknown) => {
+          setError(getLoginErrorMessage(err));
+        },
+        onSettled: () => {
           setIsLoading(false);
         },
       }
@@ -126,7 +216,7 @@ export default function LoginPage() {
 
           <div className="auth-footer">
             <p>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/auth/register" className="auth-link">
                 Sign up here
               </Link>

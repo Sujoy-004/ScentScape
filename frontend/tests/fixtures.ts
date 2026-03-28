@@ -14,23 +14,28 @@ export const test = base.extend<AuthFixtures>({
     const token = 'test-jwt-token-' + Date.now();
     const userId = 'test-user-' + Date.now();
 
-    // Initialize localStorage with auth tokens
-    await page.evaluate(({ token: t, userId: u }) => {
+    // Seed storage before app scripts execute to avoid hydration and security issues.
+    await context.addInitScript(({ t, u }) => {
       localStorage.setItem('auth_token', t);
       localStorage.setItem('user_id', u);
-    }, { token, userId });
+      localStorage.setItem(
+        'scentscape_cookie_consent',
+        JSON.stringify({ state: 'accepted', timestamp: Date.now(), prefs: { analytics: true, marketing: true } })
+      );
+    }, { t: token, u: userId });
 
-    // Set cookie as well (for middleware)
+    // Set cookie for middleware route protection.
     await context.addCookies([
       {
         name: 'auth_token',
         value: token,
-        domain: 'localhost',
-        path: '/',
+        url: 'http://localhost:3000',
         httpOnly: false,
         sameSite: 'Lax',
       },
     ]);
+
+    await page.goto('/');
 
     await use(page);
 
@@ -38,6 +43,7 @@ export const test = base.extend<AuthFixtures>({
     await page.evaluate(() => {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_id');
+      localStorage.removeItem('scentscape_cookie_consent');
     });
   },
 

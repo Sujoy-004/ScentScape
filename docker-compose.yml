@@ -63,13 +63,16 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://scentscape:scentscape_password@postgres:5432/scentscape}
-      NEO4J_URI: ${NEO4J_URI:-neo4j://neo4j:7687}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+asyncpg://${DB_USER:-scentscape}:${DB_PASSWORD:-scentscape_password}@postgres:5432/${DB_NAME:-scentscape}}
+      NEO4J_URI: ${DOCKER_NEO4J_URI:-neo4j://neo4j:7687}
       NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4j_password}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_URL: ${DOCKER_REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${DOCKER_CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${DOCKER_CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev_secret_key_change_in_production}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      SCENTSCAPE_REPO_ROOT: ${SCENTSCAPE_REPO_ROOT:-/app}
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,6 +80,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./ml/data:/app/ml/data:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -85,6 +90,38 @@ services:
     networks:
       - scentscape
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: scentscape-worker
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+asyncpg://${DB_USER:-scentscape}:${DB_PASSWORD:-scentscape_password}@postgres:5432/${DB_NAME:-scentscape}}
+      NEO4J_URI: ${DOCKER_NEO4J_URI:-neo4j://neo4j:7687}
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4j_password}
+      REDIS_URL: ${DOCKER_REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${DOCKER_CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${DOCKER_CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev_secret_key_change_in_production}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SCENTSCAPE_REPO_ROOT: ${SCENTSCAPE_REPO_ROOT:-/app}
+      PYTHONPATH: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./ml/data:/app/ml/data:ro
+    healthcheck:
+      disable: true
+    networks:
+      - scentscape
+    command: celery -A app.celery_app:celery_app worker --loglevel=info --queues recommendations,ml
 
 volumes:
   postgres_data:

@@ -1,6 +1,6 @@
 """Backend configuration module."""
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
 
@@ -53,6 +53,21 @@ class Settings(BaseSettings):
 
     # API
     api_prefix: str = "/api/v1"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        """Ensure SQLAlchemy async engine receives an async driver URL."""
+        if not isinstance(value, str):
+            return value
+
+        if value.startswith("postgres://"):
+            return value.replace("postgres://", "postgresql+asyncpg://", 1)
+        if value.startswith("postgresql+psycopg2://"):
+            return value.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+        if value.startswith("postgresql://"):
+            return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
 
 settings = Settings()
 

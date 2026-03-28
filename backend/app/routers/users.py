@@ -31,6 +31,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+def _utc_now_naive() -> datetime:
+    # DB columns are TIMESTAMP WITHOUT TIME ZONE.
+    return datetime.utcnow()
+
+
 @router.get("/profile", response_model=UserProfile)
 async def get_user_profile(
     user_id: int = Depends(get_current_user_id),
@@ -58,7 +63,7 @@ async def get_user_profile(
             detail="User not found",
         )
     
-    return UserProfile.from_orm(user)
+    return UserProfile.model_validate(user)
 
 
 @router.post("/ratings", response_model=FragranceRatingResponse, status_code=status.HTTP_201_CREATED)
@@ -95,11 +100,11 @@ async def submit_fragrance_rating(
         existing_rating.rating_projection = rating.rating_projection
         existing_rating.rating_freshness = rating.rating_freshness
         existing_rating.overall_satisfaction = rating.overall_satisfaction
-        existing_rating.updated_at = datetime.utcnow()
+        existing_rating.updated_at = _utc_now_naive()
         
         await session.commit()
         logger.info(f"Updated rating for user {user_id} on {rating.fragrance_neo4j_id}")
-        return FragranceRatingResponse.from_orm(existing_rating)
+        return FragranceRatingResponse.model_validate(existing_rating)
     else:
         # Create new rating
         new_rating = FragranceRating(
@@ -115,7 +120,7 @@ async def submit_fragrance_rating(
         session.add(new_rating)
         await session.commit()
         logger.info(f"Created rating for user {user_id} on {rating.fragrance_neo4j_id}")
-        return FragranceRatingResponse.from_orm(new_rating)
+        return FragranceRatingResponse.model_validate(new_rating)
 
 
 @router.get("/ratings", response_model=List[FragranceRatingResponse])
@@ -136,7 +141,7 @@ async def get_user_ratings(
     result = await session.execute(stmt)
     ratings = result.scalars().all()
     
-    return [FragranceRatingResponse.from_orm(r) for r in ratings]
+    return [FragranceRatingResponse.model_validate(r) for r in ratings]
 
 
 @router.get("/saved", response_model=List[SavedFragranceResponse])
@@ -157,7 +162,7 @@ async def get_saved_fragrances(
     result = await session.execute(stmt)
     saved = result.scalars().all()
     
-    return [SavedFragranceResponse.from_orm(s) for s in saved]
+    return [SavedFragranceResponse.model_validate(s) for s in saved]
 
 
 @router.post("/saved", response_model=SavedFragranceResponse, status_code=status.HTTP_201_CREATED)
@@ -200,7 +205,7 @@ async def add_saved_fragrance(
     await session.commit()
     logger.info(f"Added fragrance to collection for user {user_id}")
     
-    return SavedFragranceResponse.from_orm(saved)
+    return SavedFragranceResponse.model_validate(saved)
 
 
 @router.delete("/saved/{saved_id}", response_model=dict)
@@ -271,7 +276,7 @@ async def request_data_deletion(
     
     # Mark for deletion
     user.is_active = False
-    user.gdpr_deletion_requested_at = datetime.utcnow()
+    user.gdpr_deletion_requested_at = _utc_now_naive()
     await session.commit()
     
     logger.info(f"Data deletion requested for user {user_id}")

@@ -1,25 +1,93 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getFragranceById } from '@/lib/mockData';
 import { useAppStore } from '@/stores/app-store';
 import './fragrance-detail.css';
 
-// Each bottle icon keyed by fragrance id
-const BOTTLE_EMOJIS: Record<string, string> = {
-  '1': '🟤', '2': '💎', '3': '🟡', '4': '🌿',
-  '5': '🌹', '6': '🌊', '7': '🍊', '8': '🧊',
+type FragranceNotePayload = { name?: string } | string;
+
+type FragranceDetailPayload = {
+  id: string;
+  brand: string;
+  name: string;
+  family?: string;
+  price?: number;
+  rating?: number;
+  review_count?: number;
+  match_score?: number;
+  longevity?: string;
+  fragrance_type?: string;
+  sillage?: string;
+  recommendation?: string;
+  top_notes?: FragranceNotePayload[];
+  middle_notes?: FragranceNotePayload[];
+  base_notes?: FragranceNotePayload[];
+  accords?: Array<{ name?: string } | string>;
+  concentration?: string;
+  description?: string;
+  year?: number | string;
+  similarity_score?: number;
 };
+
+
+function normalizeNotes(notes: FragranceNotePayload[] | undefined, fallback: string[]): string[] {
+  const values = (notes || [])
+    .map((note) => (typeof note === 'string' ? note : note?.name || ''))
+    .filter((note): note is string => !!note);
+  return values.length > 0 ? values : fallback;
+}
 
 export default function FragranceDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id || '';
   const sectionRef = useRef<HTMLDivElement>(null);
+  const [fragrance, setFragrance] = useState<FragranceDetailPayload | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  const fragrance = getFragranceById(id);
   const { addToWishlist } = useAppStore();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+    const loadFragrance = async () => {
+      if (!id) {
+        setFragrance(null);
+        setIsLoading(false);
+        setLoadError('Invalid fragrance id');
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError('');
+      try {
+        const response = await fetch(`${apiBase}/fragrances/${id}`, { signal: controller.signal });
+        if (!response.ok) {
+          throw new Error(`Fragrance fetch failed (${response.status})`);
+        }
+        const payload = (await response.json()) as FragranceDetailPayload;
+        setFragrance(payload);
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          return;
+        }
+        console.error('Failed to load fragrance detail:', error);
+        setFragrance(null);
+        setLoadError('We could not load this fragrance profile right now.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadFragrance();
+
+    return () => {
+      controller.abort();
+    };
+  }, [id]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -34,13 +102,24 @@ export default function FragranceDetailPage() {
     return () => observer.disconnect();
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="detail-error">
+        <div className="error-inner">
+          <span className="error-icon">⌛</span>
+          <h2>Loading fragrance profile...</h2>
+        </div>
+      </div>
+    );
+  }
+
   if (!fragrance) {
     return (
       <div className="detail-error">
         <div className="error-inner">
           <span className="error-icon">🔍</span>
           <h2>Fragrance not found</h2>
-          <p>We couldn't find a fragrance with ID: <code>{id}</code></p>
+          <p>{loadError || 'We could not find the requested fragrance.'}</p>
           <button className="error-button" onClick={() => router.push('/fragrances')}>
             ← Back to All Fragrances
           </button>
@@ -50,9 +129,9 @@ export default function FragranceDetailPage() {
   }
 
   const notePyramid = {
-    top: fragrance.top_notes || ['Bergamot', 'Lemon'],
-    middle: fragrance.middle_notes || ['Jasmine', 'Rose'],
-    base: fragrance.base_notes || ['Sandalwood', 'Musk'],
+    top: normalizeNotes(fragrance.top_notes, ['Bergamot', 'Lemon']),
+    middle: normalizeNotes(fragrance.middle_notes, ['Jasmine', 'Rose']),
+    base: normalizeNotes(fragrance.base_notes, ['Sandalwood', 'Musk']),
   };
 
   const bottleColors: Record<string, string> = {
@@ -102,7 +181,7 @@ export default function FragranceDetailPage() {
           {/* Info */}
           <div className="fragrance-info-section">
             <div className="fragrance-header-info">
-              <span className="detail-family-badge">{fragrance.family || 'Eau de Parfum'}</span>
+              <span className="detail-family-badge">{fragrance.concentration || fragrance.family || 'Eau de Parfum'}</span>
               <h1 className="fragrance-detail-title">{fragrance.name}</h1>
               <p className="fragrance-detail-brand">{fragrance.brand}</p>
               {fragrance.year && <p className="fragrance-year">Est. {fragrance.year}</p>}
@@ -121,7 +200,11 @@ export default function FragranceDetailPage() {
               </div>
               <div className="metric-block">
                 <span className="metric-label">Match</span>
-                <div className="metric-value match-pct">{fragrance.match_score || 87}%</div>
+                <div className="metric-value match-pct">
+                  {typeof fragrance.similarity_score === 'number'
+                    ? Math.round(fragrance.similarity_score * 100)
+                    : ((fragrance.match_score as number) || 87)}%
+                </div>
               </div>
               <div className="metric-block">
                 <span className="metric-label">Longevity</span>

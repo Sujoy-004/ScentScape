@@ -27,6 +27,13 @@ async def get_current_user_id(
     Raises:
         HTTPException: 401 Unauthorized if token is invalid or expired
     """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     token = credentials.credentials
     
     # Verify token

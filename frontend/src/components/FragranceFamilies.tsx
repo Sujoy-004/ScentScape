@@ -8,13 +8,14 @@ export function FragranceFamilies() {
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver((entries, obs) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-in');
+          entry.target.classList.add('is-inview');
+          obs.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
 
     if (sectionRef.current) {
       observer.observe(sectionRef.current);
@@ -40,16 +41,16 @@ export function FragranceFamilies() {
   ];
 
   return (
-    <section className="fragrance-families" ref={sectionRef}>
+    <section className="fragrance-families scroll-reveal" ref={sectionRef}>
       <div className="fragrance-families-container">
-        <div className="section-header">
+        <div className="section-header families-header">
           <h2 className="section-title" string="split" string-repeat="true" string-split="word">Explore Fragrance Families</h2>
           <p className="section-subtitle" string="split" string-repeat="true" string-split="word">Find your scent profile across these carefully curated families</p>
         </div>
 
         <div className="families-grid">
           {families.map((family, index) => (
-              <div key={index} className="family-card tilt-card" string="magnetic|glide" string-radius="320" string-strength="0.06" string-glide="0.22">
+              <div key={index} className="family-card tilt-card scroll-reveal" string="magnetic|glide" string-radius="320" string-strength="0.06" string-glide="0.22">
               <div className="family-emoji super-magnetic-element" string="magnetic" string-radius="140" string-strength="0.2" style={{display: 'inline-block'}}>{family.emoji}</div>
               <h3 className="family-name">{family.name}</h3>
               <p className="family-description">{family.description}</p>
